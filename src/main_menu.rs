@@ -1,4 +1,5 @@
 use crate::app_state::AppState;
+use crate::ui_style::{default_button_style, default_menu_style, default_text_style};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
@@ -6,46 +7,21 @@ const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
-#[derive(Component, Debug, PartialEq)] // needed for comparison
+#[derive(Default, Resource)]
+pub struct UiFont(pub Handle<Font>);
+
+#[derive(Component)]
+struct MainMenuUI;
+
+#[derive(Component, Debug, PartialEq)]
 pub enum MainMenuButton {
     Start,
     Options,
     Quit,
 }
-#[derive(Bundle)] // needed for comparison
+#[derive(Bundle)]
 struct ButtonTarget {
     target: MainMenuButton,
-}
-
-fn default_menu_style() -> Style {
-    Style {
-        width: Val::Percent(100.0),
-        height: Val::Percent(100.0),
-        row_gap: Val::Px(16.0),
-        flex_direction: FlexDirection::Column,
-        align_items: AlignItems::Center,
-        justify_content: JustifyContent::Center,
-        ..default()
-    }
-}
-
-fn default_button_style() -> Style {
-    Style {
-        width: Val::Px(240.0),
-        height: Val::Px(65.0),
-        border: UiRect::all(Val::Px(5.0)),
-        justify_content: JustifyContent::Center,
-        align_items: AlignItems::Center,
-        ..default()
-    }
-}
-
-fn default_text_style(font: Handle<Font>) -> TextStyle {
-    TextStyle {
-        font,
-        font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
-    }
 }
 
 fn default_button_bundle() -> ButtonBundle {
@@ -77,7 +53,7 @@ fn button_system(
                 let target = button_target_query.get(children[0]).unwrap();
                 match *target {
                     MainMenuButton::Start => {
-                        app_state.set(AppState::InGame);
+                        app_state.set(AppState::Game);
                         println!("Start game");
                     }
                     MainMenuButton::Quit => {
@@ -103,15 +79,23 @@ fn button_system(
     }
 }
 
-pub struct MainMenuPlugin;
-
-fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
-    commands
-        .spawn(NodeBundle {
-            style: default_menu_style(),
+fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
+    commands.spawn(Camera2dBundle {
+        camera: Camera {
+            order: 0,
             ..default()
-        })
+        },
+        ..default()
+    });
+    commands
+        .spawn((
+            MainMenuUI,
+            NodeBundle {
+                style: default_menu_style(),
+                background_color: BackgroundColor(Color::GRAY),
+                ..default()
+            },
+        ))
         .with_children(|parent| {
             parent
                 .spawn(default_button_bundle())
@@ -120,10 +104,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ButtonTarget {
                             target: MainMenuButton::Start,
                         },
-                        TextBundle::from_section(
-                            "Start Game",
-                            default_text_style(asset_server.load("fonts/JetBrainsMono-Medium.ttf")),
-                        ),
+                        TextBundle::from_section("Start Game", default_text_style(font.0.clone())),
                     ));
                 });
             parent
@@ -133,10 +114,7 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ButtonTarget {
                             target: MainMenuButton::Options,
                         },
-                        TextBundle::from_section(
-                            "Options",
-                            default_text_style(asset_server.load("fonts/JetBrainsMono-Medium.ttf")),
-                        ),
+                        TextBundle::from_section("Options", default_text_style(font.0.clone())),
                     ));
                 });
             parent
@@ -146,18 +124,25 @@ fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ButtonTarget {
                             target: MainMenuButton::Quit,
                         },
-                        TextBundle::from_section(
-                            "Quit",
-                            default_text_style(asset_server.load("fonts/JetBrainsMono-Medium.ttf")),
-                        ),
+                        TextBundle::from_section("Quit", default_text_style(font.0.clone())),
                     ));
                 });
         });
 }
 
+fn cleanup_ui(mut commands: Commands, mut query: Query<(Entity, &MainMenuUI)>) {
+    for (e, _) in query.iter_mut() {
+        commands.entity(e).despawn_recursive()
+    }
+}
+
+pub struct MainMenuPlugin;
+
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::MainMenu), setup_ui)
+        app.init_resource::<UiFont>()
+            .add_systems(OnEnter(AppState::MainMenu), setup_ui)
+            .add_systems(OnExit(AppState::MainMenu), cleanup_ui)
             .add_systems(Update, button_system);
     }
 }
