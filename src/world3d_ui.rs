@@ -4,28 +4,21 @@ use crate::{
     app_state::AppState,
     main_menu::UiFont,
     ui_style::nameplate_text_style,
-    world3d::{Character, CharacterUI, HasCharacterUI, Player, PlayerCamera},
+    world3d::{Character, CharacterUI, Player, PlayerCamera, PlayerTarget, PlayerTargetUI},
 };
 
-pub fn setup_character_ui(
+pub fn setup_nameplates(
     mut commands: Commands,
     ui_font: Res<UiFont>,
-    character_query: Query<(Entity, &Character), (With<Character>, Without<HasCharacterUI>)>,
+    character_query: Query<(Entity, &Character), Added<Character>>,
 ) {
     for (character_handle, character) in character_query.iter() {
-        match commands.get_entity(character_handle) {
-            Some(mut character_entity) => {
-                character_entity.insert(HasCharacterUI);
-            }
-            None => {
-                println!("Failed to get entity {:?}", character_handle);
-            }
-        }
-        commands
+        let nameplate_handle = commands
             .spawn((
+                CharacterUI(character_handle),
                 NodeBundle {
                     style: Style {
-                        height: Val::Px(40.),
+                        height: Val::Auto,
                         width: Val::Px(160.),
                         position_type: PositionType::Absolute,
                         flex_direction: FlexDirection::Column,
@@ -34,9 +27,15 @@ pub fn setup_character_ui(
                     },
                     ..default()
                 },
-                CharacterUI(character_handle),
             ))
             .with_children(|parent| {
+                parent.spawn((
+                    PlayerTargetUI(character_handle),
+                    TextBundle::from_sections([TextSection::new(
+                        String::from(">Target<"),
+                        nameplate_text_style(ui_font.0.clone()),
+                    )]),
+                ));
                 parent.spawn(TextBundle::from_sections([TextSection::new(
                     character.0.name.clone(),
                     nameplate_text_style(ui_font.0.clone()),
@@ -50,54 +49,86 @@ pub fn setup_character_ui(
                     background_color: BackgroundColor(Color::DARK_GREEN),
                     ..default()
                 });
-            });
+            })
+            .id();
+
+        commands
+            .get_entity(character_handle)
+            .unwrap()
+            .insert(CharacterUI(nameplate_handle));
     }
 }
 
-pub fn update_character_ui(
-    mut text_query: Query<(&mut Style, &CharacterUI)>,
+pub fn update_nameplates_position(
+    mut character_ui_query: Query<(&mut Style, &CharacterUI)>,
     character_query: Query<&Transform, With<Character>>,
     player_camera_query: Query<(&Camera, &GlobalTransform), With<PlayerCamera>>,
 ) {
-    for (camera, camera_transform) in player_camera_query.iter() {
-        for (mut style, character) in text_query.iter_mut() {
-            match character_query.get(character.0) {
-                Ok(character_transform) => {
-                    match camera
-                        .world_to_viewport(camera_transform, character_transform.translation)
-                    {
-                        Some(coords) => {
-                            style.left = Val::Px(coords.x - 80.);
-                            style.top = Val::Px(coords.y - 80.);
+    match player_camera_query.get_single() {
+        Ok((camera, camera_transform)) => {
+            for (mut style, character) in character_ui_query.iter_mut() {
+                match character_query.get(character.0) {
+                    Ok(character_transform) => {
+                        match camera
+                            .world_to_viewport(camera_transform, character_transform.translation)
+                        {
+                            Some(coords) => {
+                                style.left = Val::Px(coords.x - 80.);
+                                style.top = Val::Px(coords.y - 80.);
+                            }
+                            None => {}
                         }
-                        None => {}
                     }
+                    Err(_) => {}
                 }
-                Err(_) => {}
+            }
+        }
+        Err(_) => {
+            error!("Could not get camera")
+        }
+    }
+}
+
+pub fn update_target_indicator(
+    mut player_target_ui_query: Query<(&mut Style, &PlayerTargetUI)>,
+    player_target_query: Query<Entity, With<PlayerTarget>>,
+) {
+    for (mut style, player_target) in player_target_ui_query.iter_mut() {
+        match player_target_query.get(player_target.0) {
+            Ok(_) => {
+                style.display = Display::Flex;
+            }
+            Err(_) => {
+                style.display = Display::None;
             }
         }
     }
 }
 
-pub fn toggle_character_ui_based_on_distance(
+pub fn toggle_nameplates_based_on_distance(
     mut character_ui_query: Query<(&mut Style, &CharacterUI)>,
-    character_query: Query<&Transform, With<Character>>,
+    character_query: Query<(&Transform, Option<&PlayerTarget>), With<Character>>,
     player_query: Query<&Transform, With<Player>>,
 ) {
     match player_query.get_single() {
         Ok(player_transform) => {
             for (mut ui_style, character_ui) in character_ui_query.iter_mut() {
                 match character_query.get(character_ui.0) {
-                    Ok(character_transform) => {
-                        let distance = player_transform
-                            .translation
-                            .distance(character_transform.translation);
-
-                        match distance > 15.0 {
-                            true => ui_style.display = Display::None,
-                            false => ui_style.display = Display::Flex,
+                    Ok((character_transform, player_target)) => match player_target {
+                        Some(_) => {
+                            ui_style.display = Display::Flex;
                         }
-                    }
+                        None => {
+                            let distance = player_transform
+                                .translation
+                                .distance(character_transform.translation);
+
+                            match distance > 15.0 {
+                                true => ui_style.display = Display::None,
+                                false => ui_style.display = Display::Flex,
+                            }
+                        }
+                    },
                     Err(_) => {}
                 }
             }
@@ -115,9 +146,10 @@ impl Plugin for World3dUiPlugin {
         app.add_systems(
             Update,
             (
-                setup_character_ui,
-                update_character_ui,
-                toggle_character_ui_based_on_distance,
+                setup_nameplates,
+                update_nameplates_position,
+                toggle_nameplates_based_on_distance,
+                update_target_indicator,
             )
                 .run_if(in_state(AppState::Game)),
         );

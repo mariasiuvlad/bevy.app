@@ -22,10 +22,7 @@ pub struct CharacterInfo {
 pub struct CharacterUI(pub Entity);
 
 #[derive(Component)]
-pub struct PlayerTargetUI;
-
-#[derive(Component)]
-pub struct HasCharacterUI;
+pub struct PlayerTargetUI(pub Entity);
 
 #[derive(Component)]
 pub struct PlayerCamera;

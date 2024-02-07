@@ -8,9 +8,6 @@ use crate::{
 #[derive(Component)]
 pub struct CharacterUI(Entity);
 
-#[derive(Component)]
-pub struct HasCharacterUI;
-
 pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

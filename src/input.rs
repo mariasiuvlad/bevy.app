@@ -10,7 +10,7 @@ pub fn keyboard_input(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
-    character_query: Query<(Entity, &Character), Without<PlayerTarget>>,
+    character_query: Query<(Entity, &Character), (Without<PlayerTarget>, Without<Player>)>,
     character_query_target: Query<(Entity, &Character), With<PlayerTarget>>,
     mut player_query: Query<&mut Transform, With<Player>>,
 ) {
