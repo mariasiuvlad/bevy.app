@@ -1,17 +1,54 @@
 use bevy::prelude::*;
 
-use crate::world3d::{Character, Player, PlayerTarget};
+use crate::{
+    app_state::AppState,
+    world3d::{Character, Player, PlayerTarget},
+};
 
 const SPEED: f32 = 4.0;
 const TURN_RATE: f32 = 5.0;
 
-// @TODO remove *character_query* maybe use events
-pub fn keyboard_input(
+#[derive(Event)]
+struct TargetNextEnemyEvent;
+
+fn handle_target_next_enemy(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
-    time: Res<Time>,
+    mut ev_target_next_enemy: EventReader<TargetNextEnemyEvent>,
     character_query: Query<(Entity, &Character), (Without<PlayerTarget>, Without<Player>)>,
     character_query_target: Query<(Entity, &Character), With<PlayerTarget>>,
+) {
+    for _ in ev_target_next_enemy.read() {
+        let mut new_target: Option<Entity> = None;
+        for (handle, _character) in character_query.iter() {
+            new_target = Some(handle);
+        }
+
+        for (e, _c) in character_query_target.iter() {
+            match commands.get_entity(e) {
+                Some(mut ec) => {
+                    ec.remove::<PlayerTarget>();
+                }
+                None => {}
+            }
+        }
+
+        match new_target {
+            Some(target) => match commands.get_entity(target) {
+                Some(mut entity) => {
+                    entity.insert(PlayerTarget);
+                }
+                None => {}
+            },
+            None => {}
+        }
+    }
+}
+
+// @TODO remove *character_query* maybe use events
+fn keyboard_input(
+    keys: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut ev_target_next_enemy: EventWriter<TargetNextEnemyEvent>,
     mut player_query: Query<&mut Transform, With<Player>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
@@ -40,28 +77,17 @@ pub fn keyboard_input(
         }
     }
     if keys.just_pressed(KeyCode::Tab) {
-        let mut new_target: Option<Entity> = None;
-        for (handle, _character) in character_query.iter() {
-            new_target = Some(handle);
-        }
+        ev_target_next_enemy.send(TargetNextEnemyEvent);
+    }
+}
 
-        for (e, _c) in character_query_target.iter() {
-            match commands.get_entity(e) {
-                Some(mut ec) => {
-                    ec.remove::<PlayerTarget>();
-                }
-                None => {}
-            }
-        }
+pub struct InputPlugin;
 
-        match new_target {
-            Some(target) => match commands.get_entity(target) {
-                Some(mut entity) => {
-                    entity.insert(PlayerTarget);
-                }
-                None => {}
-            },
-            None => {}
-        }
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<TargetNextEnemyEvent>().add_systems(
+            Update,
+            (keyboard_input, handle_target_next_enemy).run_if(in_state(AppState::Game)),
+        );
     }
 }

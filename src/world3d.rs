@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::input::keyboard_input;
+use crate::input::InputPlugin;
 use crate::maps;
 use crate::texture;
 use bevy::prelude::*;
@@ -83,7 +83,7 @@ pub struct World3dPlugin;
 
 impl Plugin for World3dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Game), (maps::hello_world::setup, setup))
-            .add_systems(Update, keyboard_input.run_if(in_state(AppState::Game)));
+        app.add_systems(OnEnter(AppState::Game), (maps::hello_world::setup, setup));
+        app.add_plugins(InputPlugin);
     }
 }

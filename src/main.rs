@@ -24,12 +24,12 @@ fn main() {
         .add_state::<AppState>()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
+            StartupPlugin,
             MainMenuPlugin,
             CombatPlugin,
             PlayerUiPlugin,
-            StartupPlugin,
-            World3dPlugin,
             World3dUiPlugin,
+            World3dPlugin,
         ))
         .run();
 }
