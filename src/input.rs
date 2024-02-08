@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     app_state::AppState,
+    combat::AttackEvent,
     world3d::{Character, Player, PlayerTarget},
 };
 
@@ -49,10 +50,25 @@ fn keyboard_input(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut ev_target_next_enemy: EventWriter<TargetNextEnemyEvent>,
+    mut ev_attack: EventWriter<AttackEvent>,
     mut player_query: Query<&mut Transform, With<Player>>,
+    player_target_query: Query<Entity, With<PlayerTarget>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
         todo!("Jump!")
+    }
+    if keys.just_pressed(KeyCode::Tab) {
+        ev_target_next_enemy.send(TargetNextEnemyEvent);
+    }
+    if keys.just_pressed(KeyCode::R) {
+        if let Ok(player_target_handle) = player_target_query.get_single() {
+            info!("Attack!");
+            ev_attack.send(AttackEvent::new(
+                player_target_handle,
+                player_target_handle,
+                5,
+            ));
+        }
     }
     if keys.pressed(KeyCode::W) {
         for mut transform in player_query.iter_mut() {
@@ -75,9 +91,6 @@ fn keyboard_input(
         for mut transform in player_query.iter_mut() {
             transform.rotate_y(-time.delta_seconds() * TURN_RATE);
         }
-    }
-    if keys.just_pressed(KeyCode::Tab) {
-        ev_target_next_enemy.send(TargetNextEnemyEvent);
     }
 }
 

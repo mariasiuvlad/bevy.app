@@ -2,47 +2,38 @@ use std::fmt;
 
 use bevy::prelude::*;
 
-use crate::app_state::AppState;
+use crate::{app_state::AppState, world3d::Character};
 
 #[derive(Component)]
-pub struct PlayerUi(u8);
+pub struct PlayerUi(i32);
 
 #[derive(Component)]
-pub struct Health(pub u8);
+pub struct Health(pub i32);
 
 #[derive(Component)]
-pub struct MaxHealth(pub u8);
+pub struct MaxHealth(pub i32);
 
 #[derive(Component)]
-pub struct Energy(pub u8);
+pub struct Energy(pub i32);
 
 #[derive(Component)]
-pub struct MaxEnergy(pub u8);
+pub struct MaxEnergy(pub i32);
 
 #[derive(Component, PartialEq, Debug, Clone, Copy)]
-pub struct Player(pub u8);
-
-#[derive(Component)]
-pub struct MainPlayer;
-
-impl fmt::Display for Player {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Player {}", self.0)
-    }
-}
+pub struct Player(pub i32);
 
 #[derive(Event, Debug)]
-pub struct DamageTakenEvent(pub u8, pub Player);
+pub struct DamageTakenEvent(pub i32, pub Entity);
 
 #[derive(Event, Debug)]
 pub struct AttackEvent {
-    source: Player,
-    target: Player,
-    attack: u8,
+    source: Entity,
+    target: Entity,
+    attack: i32,
 }
 
 impl AttackEvent {
-    pub fn new(source: Player, target: Player, attack: u8) -> Self {
+    pub fn new(source: Entity, target: Entity, attack: i32) -> Self {
         Self {
             source,
             target,
@@ -51,27 +42,25 @@ impl AttackEvent {
     }
 }
 
-fn spawn_player(mut commands: Commands) {
-    commands.spawn((
-        MainPlayer,
-        Player(1),
-        MaxHealth(20),
-        Health(20),
-        Energy(20),
-        MaxEnergy(20),
-    ));
-    commands.spawn((Player(2), Health(20), Energy(10)));
-}
-
-fn update_health(
+fn handle_damage_taken(
     mut ev_damage: EventReader<DamageTakenEvent>,
-    mut player_query: Query<(&Player, &mut Health)>,
+    mut character_query: Query<&mut Health, With<Character>>,
 ) {
     for ev in ev_damage.read() {
-        for (player, mut health) in player_query.iter_mut() {
-            if *player == ev.1 {
-                health.0 -= ev.0;
-            }
+        info!("{:?} takes {} damage", ev.1, ev.0);
+        if let Ok(mut health) = character_query.get_mut(ev.1) {
+            health.0 -= ev.0;
+        }
+    }
+}
+
+fn handle_health_change(
+    mut commands: Commands,
+    character_query: Query<(Entity, &Health), Changed<Health>>,
+) {
+    for (e, h) in character_query.iter() {
+        if h.0 <= 0 {
+            commands.entity(e).despawn();
         }
     }
 }
@@ -82,7 +71,7 @@ fn handle_attack(
 ) {
     for attack_event in ev_attack.read() {
         println!(
-            "{} attacks {} for {}",
+            "{:?} attacks {:?} for {}",
             attack_event.source, attack_event.target, attack_event.attack
         );
         ev_damage_taken.send(DamageTakenEvent(attack_event.attack, attack_event.target));
@@ -95,10 +84,10 @@ impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DamageTakenEvent>()
             .add_event::<AttackEvent>()
-            .add_systems(OnEnter(AppState::Game), spawn_player)
             .add_systems(
                 Update,
-                (update_health, handle_attack).run_if(in_state(AppState::Game)),
+                (handle_damage_taken, handle_attack, handle_health_change)
+                    .run_if(in_state(AppState::Game)),
             );
     }
 }

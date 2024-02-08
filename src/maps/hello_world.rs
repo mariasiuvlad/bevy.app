@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    combat::{Energy, Health, MaxEnergy, MaxHealth},
     texture,
     world3d::{Character, CharacterInfo},
 };
@@ -38,6 +39,10 @@ pub fn setup(
             transform: Transform::from_xyz(-3.0, 1.0, -8.0),
             ..default()
         },
+        MaxHealth(20),
+        Health(20),
+        Energy(20),
+        MaxEnergy(20),
         Character(CharacterInfo {
             name: String::from("Goblin 1"),
         }),
@@ -50,6 +55,10 @@ pub fn setup(
             transform: Transform::from_xyz(3.0, 1.0, -8.0),
             ..default()
         },
+        MaxHealth(20),
+        Health(20),
+        Energy(20),
+        MaxEnergy(20),
         Character(CharacterInfo {
             name: String::from("Goblin 2"),
         }),

@@ -2,10 +2,19 @@ use bevy::prelude::*;
 
 use crate::{
     app_state::AppState,
+    combat::{Health, MaxHealth},
     main_menu::UiFont,
     ui_style::nameplate_text_style,
-    world3d::{Character, CharacterUI, Player, PlayerCamera, PlayerTarget, PlayerTargetUI},
+    world3d::{Character, Player, PlayerCamera, PlayerTarget},
 };
+
+#[derive(Component)]
+pub struct PlayerTargetUI(pub Entity);
+
+#[derive(Component)]
+pub struct CharacterUI(pub Entity);
+#[derive(Component)]
+pub struct HealthBarUI(pub Entity);
 
 pub fn setup_nameplates(
     mut commands: Commands,
@@ -40,22 +49,49 @@ pub fn setup_nameplates(
                     character.0.name.clone(),
                     nameplate_text_style(ui_font.0.clone()),
                 )]));
-                parent.spawn(NodeBundle {
-                    style: Style {
-                        height: Val::Px(12.),
-                        width: Val::Percent(100.),
+                parent
+                    .spawn(NodeBundle {
+                        style: Style {
+                            height: Val::Px(12.),
+                            width: Val::Percent(100.),
+                            border: UiRect::all(Val::Px(2.)),
+                            ..default()
+                        },
+                        border_color: BorderColor(Color::WHITE),
                         ..default()
-                    },
-                    background_color: BackgroundColor(Color::DARK_GREEN),
-                    ..default()
-                });
+                    })
+                    .with_children(|parent| {
+                        parent.spawn((
+                            HealthBarUI(character_handle),
+                            NodeBundle {
+                                style: Style {
+                                    height: Val::Percent(100.),
+                                    width: Val::Percent(100.),
+                                    ..default()
+                                },
+                                background_color: BackgroundColor(Color::DARK_GREEN),
+                                ..default()
+                            },
+                        ));
+                    });
             })
             .id();
 
-        commands
-            .get_entity(character_handle)
-            .unwrap()
-            .insert(CharacterUI(nameplate_handle));
+        if let Some(mut entity_commands) = commands.get_entity(character_handle) {
+            entity_commands.insert(CharacterUI(nameplate_handle));
+        }
+    }
+}
+
+pub fn update_nameplates_health(
+    mut health_bar_ui_query: Query<(&mut Style, &HealthBarUI)>,
+    character_query: Query<(&Health, &MaxHealth), With<Character>>,
+) {
+    for (mut style, health_bar_ui) in health_bar_ui_query.iter_mut() {
+        if let Ok((health, max_health)) = character_query.get(health_bar_ui.0) {
+            let current_health_percentage = (health.0 * 100) as f32 / max_health.0 as f32;
+            style.width = Val::Percent(current_health_percentage);
+        }
     }
 }
 
@@ -148,6 +184,7 @@ impl Plugin for World3dUiPlugin {
             (
                 setup_nameplates,
                 update_nameplates_position,
+                update_nameplates_health,
                 toggle_nameplates_based_on_distance,
                 update_target_indicator,
             )

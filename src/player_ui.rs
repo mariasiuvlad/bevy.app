@@ -1,8 +1,9 @@
 use crate::{
     app_state::AppState,
-    combat::{Energy, Health, MainPlayer, MaxEnergy, MaxHealth},
+    combat::{Energy, Health, MaxEnergy, MaxHealth},
     main_menu::UiFont,
     ui_style::default_text_style,
+    world3d::Player,
 };
 use bevy::prelude::*;
 
@@ -86,7 +87,7 @@ pub fn setup_player_ui(mut commands: Commands, ui_font: Res<UiFont>) {
 }
 
 pub fn update_player_ui_health(
-    player_query: Query<&Health, With<MainPlayer>>,
+    player_query: Query<&Health, With<Player>>,
     mut health_value_ui_query: Query<&mut Text, With<PlayerUiHealthValue>>,
 ) {
     let health = player_query.get_single().unwrap();
@@ -95,7 +96,7 @@ pub fn update_player_ui_health(
 }
 
 pub fn update_player_ui_energy(
-    player_query: Query<&Energy, With<MainPlayer>>,
+    player_query: Query<&Energy, With<Player>>,
     mut energy_value_ui_query: Query<&mut Text, With<PlayerUiEnergyValue>>,
 ) {
     let energy = player_query.get_single().unwrap();
@@ -104,7 +105,7 @@ pub fn update_player_ui_energy(
 }
 
 pub fn update_player_ui_health_bar(
-    player_query: Query<(&Health, &MaxHealth), With<MainPlayer>>,
+    player_query: Query<(&Health, &MaxHealth), With<Player>>,
     mut health_bar_ui_query: Query<&mut Style, With<PlayerUiHealthBar>>,
 ) {
     let (health, max_health) = player_query.get_single().unwrap();
@@ -114,7 +115,7 @@ pub fn update_player_ui_health_bar(
 }
 
 pub fn update_player_ui_energy_bar(
-    player_query: Query<(&Energy, &MaxEnergy), With<MainPlayer>>,
+    player_query: Query<(&Energy, &MaxEnergy), With<Player>>,
     mut energy_bar_ui_query: Query<&mut Style, With<PlayerUiEnergyBar>>,
 ) {
     let (energy, max_energy) = player_query.get_single().unwrap();

@@ -1,4 +1,8 @@
 use crate::app_state::AppState;
+use crate::combat::Energy;
+use crate::combat::Health;
+use crate::combat::MaxEnergy;
+use crate::combat::MaxHealth;
 use crate::input::InputPlugin;
 use crate::maps;
 use crate::texture;
@@ -17,12 +21,6 @@ pub struct Character(pub CharacterInfo);
 pub struct CharacterInfo {
     pub name: String,
 }
-
-#[derive(Component)]
-pub struct CharacterUI(pub Entity);
-
-#[derive(Component)]
-pub struct PlayerTargetUI(pub Entity);
 
 #[derive(Component)]
 pub struct PlayerCamera;
@@ -59,6 +57,10 @@ fn setup(
                 ..default()
             },
             Player,
+            MaxHealth(20),
+            Health(20),
+            Energy(20),
+            MaxEnergy(20),
             Character(CharacterInfo {
                 name: String::from("Player"),
             }),
