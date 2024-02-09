@@ -96,31 +96,30 @@ pub fn update_nameplates_health(
 }
 
 pub fn update_nameplates_position(
-    mut character_ui_query: Query<(&mut Style, &CharacterUI)>,
+    mut commands: Commands,
+    mut character_ui_query: Query<(Entity, &mut Style, &CharacterUI)>,
     character_query: Query<&Transform, With<Character>>,
     player_camera_query: Query<(&Camera, &GlobalTransform), With<PlayerCamera>>,
 ) {
-    match player_camera_query.get_single() {
-        Ok((camera, camera_transform)) => {
-            for (mut style, character) in character_ui_query.iter_mut() {
-                match character_query.get(character.0) {
-                    Ok(character_transform) => {
-                        match camera
-                            .world_to_viewport(camera_transform, character_transform.translation)
-                        {
-                            Some(coords) => {
-                                style.left = Val::Px(coords.x - 80.);
-                                style.top = Val::Px(coords.y - 80.);
-                            }
-                            None => {}
+    if let Ok((camera, camera_transform)) = player_camera_query.get_single() {
+        for (ui_handle, mut style, character) in character_ui_query.iter_mut() {
+            match character_query.get(character.0) {
+                Ok(character_transform) => {
+                    match camera
+                        .world_to_viewport(camera_transform, character_transform.translation)
+                    {
+                        Some(coords) => {
+                            style.left = Val::Px(coords.x - 80.);
+                            style.top = Val::Px(coords.y - 80.);
                         }
+                        None => {}
                     }
-                    Err(_) => {}
+                }
+                Err(_) => {
+                    info!("Should despawn ui!");
+                    commands.entity(ui_handle).despawn_recursive();
                 }
             }
-        }
-        Err(_) => {
-            error!("Could not get camera")
         }
     }
 }

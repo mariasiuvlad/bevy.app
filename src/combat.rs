@@ -2,7 +2,7 @@ use std::fmt;
 
 use bevy::prelude::*;
 
-use crate::{app_state::AppState, world3d::Character};
+use crate::{app_state::AppState, world3d::Character, world3d_ui::CharacterUI};
 
 #[derive(Component)]
 pub struct PlayerUi(i32);
@@ -24,6 +24,9 @@ pub struct Player(pub i32);
 
 #[derive(Event, Debug)]
 pub struct DamageTakenEvent(pub i32, pub Entity);
+
+#[derive(Event, Debug)]
+pub struct CharacterDeathEvent(pub Entity);
 
 #[derive(Event, Debug)]
 pub struct AttackEvent {
@@ -55,12 +58,26 @@ fn handle_damage_taken(
 }
 
 fn handle_health_change(
-    mut commands: Commands,
+    mut ev_death: EventWriter<CharacterDeathEvent>,
     character_query: Query<(Entity, &Health), Changed<Health>>,
 ) {
     for (e, h) in character_query.iter() {
         if h.0 <= 0 {
-            commands.entity(e).despawn();
+            ev_death.send(CharacterDeathEvent(e));
+        }
+    }
+}
+
+fn handle_death(
+    mut commands: Commands,
+    mut ev_death: EventReader<CharacterDeathEvent>,
+    character_query: Query<(Entity, &CharacterUI), With<Character>>,
+) {
+    for ev in ev_death.read() {
+        info!("{:?}", ev);
+        if let Ok((character_handle, ui)) = character_query.get(ev.0) {
+            // @TODO despawn ui
+            commands.entity(character_handle).despawn();
         }
     }
 }
@@ -84,9 +101,15 @@ impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DamageTakenEvent>()
             .add_event::<AttackEvent>()
+            .add_event::<CharacterDeathEvent>()
             .add_systems(
                 Update,
-                (handle_damage_taken, handle_attack, handle_health_change)
+                (
+                    handle_damage_taken,
+                    handle_attack,
+                    handle_health_change,
+                    handle_death,
+                )
                     .run_if(in_state(AppState::Game)),
             );
     }
