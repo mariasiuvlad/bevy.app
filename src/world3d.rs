@@ -1,8 +1,5 @@
 use crate::app_state::AppState;
-use crate::combat::Energy;
-use crate::combat::Health;
-use crate::combat::MaxEnergy;
-use crate::combat::MaxHealth;
+use crate::combat::CombatStatsBundle;
 use crate::input::InputPlugin;
 use crate::maps;
 use crate::texture;
@@ -57,10 +54,7 @@ fn setup(
                 ..default()
             },
             Player,
-            MaxHealth(20),
-            Health(20),
-            Energy(20),
-            MaxEnergy(20),
+            CombatStatsBundle::default(),
             Character(CharacterInfo {
                 name: String::from("Player"),
             }),

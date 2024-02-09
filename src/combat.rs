@@ -3,9 +3,6 @@ use bevy::prelude::*;
 use crate::{app_state::AppState, world3d::Character};
 
 #[derive(Component)]
-pub struct PlayerUi(i32);
-
-#[derive(Component)]
 pub struct Health(pub i32);
 
 #[derive(Component)]
@@ -17,8 +14,24 @@ pub struct Energy(pub i32);
 #[derive(Component)]
 pub struct MaxEnergy(pub i32);
 
-#[derive(Component, PartialEq, Debug, Clone, Copy)]
-pub struct Player(pub i32);
+#[derive(Bundle)]
+pub struct CombatStatsBundle {
+    max_health: MaxHealth,
+    health: Health,
+    max_energy: MaxEnergy,
+    energy: Energy,
+}
+
+impl Default for CombatStatsBundle {
+    fn default() -> Self {
+        CombatStatsBundle {
+            max_health: MaxHealth(20),
+            health: Health(20),
+            max_energy: MaxEnergy(100),
+            energy: Energy(100),
+        }
+    }
+}
 
 #[derive(Event, Debug)]
 pub struct DamageTakenEvent(pub i32, pub Entity);
@@ -83,11 +96,19 @@ fn handle_attack(
     mut ev_damage_taken: EventWriter<DamageTakenEvent>,
 ) {
     for attack_event in ev_attack.read() {
-        println!(
-            "{:?} attacks {:?} for {}",
-            attack_event.source, attack_event.target, attack_event.attack
-        );
         ev_damage_taken.send(DamageTakenEvent(attack_event.attack, attack_event.target));
+    }
+}
+
+fn log_attack(mut ev_attack: EventReader<AttackEvent>, character_query: Query<&Character>) {
+    for attack_event in ev_attack.read() {
+        let source = character_query.get(attack_event.source).unwrap();
+        let target = character_query.get(attack_event.target).unwrap();
+
+        info!(
+            "{} attacks {} for {}",
+            source.0.name, target.0.name, attack_event.attack
+        );
     }
 }
 
@@ -103,6 +124,7 @@ impl Plugin for CombatPlugin {
                 (
                     handle_damage_taken,
                     handle_attack,
+                    log_attack,
                     handle_health_change,
                     handle_death,
                 )

@@ -54,14 +54,14 @@ fn button_system(
                 match *target {
                     MainMenuButton::Start => {
                         app_state.set(AppState::Game);
-                        println!("Start game");
+                        info!("Start game");
                     }
                     MainMenuButton::Quit => {
                         exit.send(AppExit);
-                        println!("Quit game");
+                        info!("Quit game");
                     }
                     MainMenuButton::Options => {
-                        println!("Options");
+                        info!("Options");
                     }
                 }
                 *color = PRESSED_BUTTON.into();

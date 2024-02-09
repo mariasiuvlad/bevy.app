@@ -116,7 +116,6 @@ pub fn update_nameplates_position(
                     }
                 }
                 Err(_) => {
-                    info!("Should despawn ui!");
                     commands.entity(ui_handle).despawn_recursive();
                 }
             }
@@ -145,31 +144,25 @@ pub fn toggle_nameplates_based_on_distance(
     character_query: Query<(&Transform, Option<&PlayerTarget>), With<Character>>,
     player_query: Query<&Transform, With<Player>>,
 ) {
-    match player_query.get_single() {
-        Ok(player_transform) => {
-            for (mut ui_style, character_ui) in character_ui_query.iter_mut() {
-                match character_query.get(character_ui.0) {
-                    Ok((character_transform, player_target)) => match player_target {
-                        Some(_) => {
-                            ui_style.display = Display::Flex;
-                        }
-                        None => {
-                            let distance = player_transform
-                                .translation
-                                .distance(character_transform.translation);
+    if let Ok(player_transform) = player_query.get_single() {
+        for (mut ui_style, character_ui) in character_ui_query.iter_mut() {
+            if let Ok((character_transform, player_target)) = character_query.get(character_ui.0) {
+                match player_target {
+                    Some(_) => {
+                        ui_style.display = Display::Flex;
+                    }
+                    None => {
+                        let distance = player_transform
+                            .translation
+                            .distance(character_transform.translation);
 
-                            match distance > 15.0 {
-                                true => ui_style.display = Display::None,
-                                false => ui_style.display = Display::Flex,
-                            }
-                        }
-                    },
-                    Err(_) => {}
+                        ui_style.display = match distance < 15.0 {
+                            true => Display::Flex,
+                            false => Display::None,
+                        };
+                    }
                 }
             }
-        }
-        Err(_) => {
-            println!("Failed to find player");
         }
     }
 }
