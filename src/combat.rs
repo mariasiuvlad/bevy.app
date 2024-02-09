@@ -1,8 +1,6 @@
-use std::fmt;
-
 use bevy::prelude::*;
 
-use crate::{app_state::AppState, world3d::Character, world3d_ui::CharacterUI};
+use crate::{app_state::AppState, world3d::Character};
 
 #[derive(Component)]
 pub struct PlayerUi(i32);
@@ -71,12 +69,10 @@ fn handle_health_change(
 fn handle_death(
     mut commands: Commands,
     mut ev_death: EventReader<CharacterDeathEvent>,
-    character_query: Query<(Entity, &CharacterUI), With<Character>>,
+    character_query: Query<Entity, With<Character>>,
 ) {
     for ev in ev_death.read() {
-        info!("{:?}", ev);
-        if let Ok((character_handle, ui)) = character_query.get(ev.0) {
-            // @TODO despawn ui
+        if let Ok(character_handle) = character_query.get(ev.0) {
             commands.entity(character_handle).despawn();
         }
     }
