@@ -88,7 +88,7 @@ fn attack_input(
                 ev_attack.send(AttackEvent::new(player_handle, player_target_handle, 5));
                 commands.entity(player_handle).insert(AttackCooldown {
                     total_duration: Duration::from_secs(1),
-                    timer: Timer::from_seconds(5., TimerMode::Once),
+                    timer: Timer::from_seconds(1., TimerMode::Once),
                 });
             }
         }
