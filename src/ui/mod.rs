@@ -2,10 +2,13 @@ use crate::{
     app_state::AppState,
     combat::combat_stats::Stats,
     main_menu::UiFont,
-    ui_style::player_ui_text_style,
     world3d::{Player, PlayerTarget},
 };
 use bevy::prelude::*;
+
+use self::common::{bar, container, text, unit_frame};
+
+mod common;
 
 #[derive(Component)]
 pub struct UiRoot<T: Component>(T);
@@ -21,52 +24,6 @@ pub struct UiEnergyValue<T: Component>(T);
 
 #[derive(Component)]
 pub struct UiEnergyPercentage<T: Component>(T);
-
-pub fn container() -> NodeBundle {
-    NodeBundle {
-        style: Style {
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            ..default()
-        },
-        background_color: BackgroundColor(Color::rgba(0., 0., 0., 0.)),
-        ..default()
-    }
-}
-
-pub fn unit_frame() -> NodeBundle {
-    NodeBundle {
-        style: Style {
-            margin: UiRect::all(Val::Px(16.)),
-            width: Val::Px(200.),
-            height: Val::Px(40.),
-            display: Display::Flex,
-            flex_direction: FlexDirection::Column,
-            border: UiRect::all(Val::Px(2.)),
-            ..default()
-        },
-        border_color: BorderColor(Color::WHITE),
-        ..default()
-    }
-}
-
-pub fn bar(color: Color) -> NodeBundle {
-    NodeBundle {
-        style: Style {
-            width: Val::Percent(100.),
-            flex_grow: 1.,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        background_color: BackgroundColor(color),
-        ..default()
-    }
-}
-
-pub fn text(font: Handle<Font>) -> TextBundle {
-    TextBundle::from_sections([TextSection::new("", player_ui_text_style(font))])
-}
 
 pub fn setup_ui(mut commands: Commands, ui_font: Res<UiFont>) {
     commands.spawn(container()).with_children(|parent| {
@@ -157,9 +114,9 @@ pub fn toggle_ui<T: Component>(
     }
 }
 
-pub struct PlayerUiPlugin;
+pub struct UiPlugin;
 
-impl Plugin for PlayerUiPlugin {
+impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Game), setup_ui)
             .add_systems(

@@ -5,9 +5,9 @@ mod main_menu;
 mod maps;
 mod movement;
 mod nameplate;
-mod player_ui;
 mod startup;
 mod texture;
+mod ui;
 mod ui_style;
 mod world3d;
 
@@ -18,8 +18,8 @@ use combat::CombatPlugin;
 use main_menu::MainMenuPlugin;
 use movement::MovementPlugin;
 use nameplate::NameplatePlugin;
-use player_ui::PlayerUiPlugin;
 use startup::StartupPlugin;
+use ui::UiPlugin;
 use world3d::World3dPlugin;
 
 fn _log_fps(diagnostics: Res<DiagnosticsStore>) {
@@ -41,7 +41,7 @@ fn main() {
             MainMenuPlugin,
             CombatPlugin,
             MovementPlugin,
-            PlayerUiPlugin,
+            UiPlugin,
             NameplatePlugin,
             World3dPlugin,
         ))

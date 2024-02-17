@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::{
     app_state::AppState,
     combat::{
-        attack::{AttackCooldown, AttackEvent},
+        attack::{AttackCooldown, AttackEvent, AttackWindUp},
         status_effect::sprint::SprintEffect,
     },
     movement::{StrafeDirection, Strafing, TurnDirection, Turning, WalkDirection, Walking},
@@ -78,15 +78,14 @@ fn keyboard_input(
 fn attack_input(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    mut ev_attack: EventWriter<AttackEvent>,
     player_query: Query<Entity, (With<Player>, Without<AttackCooldown>)>,
     player_target_query: Query<Entity, With<PlayerTarget>>,
 ) {
     if keys.just_pressed(KeyCode::R) {
         if let Ok(player_target_handle) = player_target_query.get_single() {
             if let Ok(player_handle) = player_query.get_single() {
-                ev_attack.send(AttackEvent::new(player_handle, player_target_handle, 5));
-                commands.entity(player_handle).insert(AttackCooldown {
+                commands.entity(player_handle).insert(AttackWindUp {
+                    ev: AttackEvent::new(player_handle, player_target_handle, 5),
                     total_duration: Duration::from_secs(1),
                     timer: Timer::from_seconds(1., TimerMode::Once),
                 });

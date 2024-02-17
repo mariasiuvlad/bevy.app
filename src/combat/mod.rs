@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{app_state::AppState, world3d::Character};
 
 use self::{
-    attack::{handle_attack, handle_attack_cooldown, AttackEvent},
+    attack::{AttackEvent, AttackPlugin},
     combat_stats::Stats,
     status_effect::{sprint::SprintPlugin, thorns::ThornsPlugin},
 };
@@ -78,15 +78,12 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DamageTakenEvent>()
-            .add_event::<AttackEvent>()
             .add_event::<CharacterDeathEvent>()
-            .add_plugins((SprintPlugin, ThornsPlugin))
+            .add_plugins((SprintPlugin, ThornsPlugin, AttackPlugin))
             .add_systems(
                 Update,
                 (
                     handle_damage_taken,
-                    handle_attack,
-                    handle_attack_cooldown,
                     log_combat,
                     handle_health_change,
                     handle_death,
