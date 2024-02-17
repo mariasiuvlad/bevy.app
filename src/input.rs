@@ -1,13 +1,16 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use crate::{
     app_state::AppState,
-    combat::AttackEvent,
+    combat::{
+        attack::{AttackCooldown, AttackEvent},
+        status_effect::sprint::SprintEffect,
+    },
+    movement::{StrafeDirection, Strafing, TurnDirection, Turning, WalkDirection, Walking},
     world3d::{Character, Player, PlayerTarget},
 };
-
-const SPEED: f32 = 4.0;
-const TURN_RATE: f32 = 5.0;
 
 #[derive(Event)]
 struct TargetNextEnemyEvent;
@@ -47,49 +50,116 @@ fn handle_target_next_enemy(
 
 // @TODO remove *character_query* maybe use events
 fn keyboard_input(
+    mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    time: Res<Time>,
     mut ev_target_next_enemy: EventWriter<TargetNextEnemyEvent>,
-    mut ev_attack: EventWriter<AttackEvent>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    player_target_query: Query<Entity, With<PlayerTarget>>,
+    player_query: Query<Entity, With<Player>>,
+    target_query: Query<Entity, With<PlayerTarget>>,
 ) {
+    // Skills
     if keys.just_pressed(KeyCode::Space) {
-        todo!("Jump!")
+        if let Ok(e) = player_query.get_single() {
+            commands.entity(e).insert(SprintEffect {
+                timer: Timer::from_seconds(5., TimerMode::Once),
+            });
+        }
+    }
+    // Targeting
+    if keys.just_pressed(KeyCode::Escape) {
+        if let Ok(e) = target_query.get_single() {
+            commands.entity(e).remove::<PlayerTarget>();
+        }
     }
     if keys.just_pressed(KeyCode::Tab) {
         ev_target_next_enemy.send(TargetNextEnemyEvent);
     }
+}
+
+fn attack_input(
+    mut commands: Commands,
+    keys: Res<Input<KeyCode>>,
+    mut ev_attack: EventWriter<AttackEvent>,
+    player_query: Query<Entity, (With<Player>, Without<AttackCooldown>)>,
+    player_target_query: Query<Entity, With<PlayerTarget>>,
+) {
     if keys.just_pressed(KeyCode::R) {
         if let Ok(player_target_handle) = player_target_query.get_single() {
-            info!("Attack!");
-            ev_attack.send(AttackEvent::new(
-                player_target_handle,
-                player_target_handle,
-                5,
-            ));
+            if let Ok(player_handle) = player_query.get_single() {
+                ev_attack.send(AttackEvent::new(player_handle, player_target_handle, 5));
+                commands.entity(player_handle).insert(AttackCooldown {
+                    total_duration: Duration::from_secs(1),
+                    timer: Timer::from_seconds(5., TimerMode::Once),
+                });
+            }
         }
     }
-    if keys.pressed(KeyCode::W) {
-        for mut transform in player_query.iter_mut() {
-            let delta = transform.forward() * SPEED * time.delta_seconds();
-            transform.translation += delta;
+}
+
+fn walking_input(
+    mut commands: Commands,
+    keys: Res<Input<KeyCode>>,
+    not_walking_query: Query<Entity, (With<Player>, Without<Walking>)>,
+    walking_query: Query<Entity, (With<Player>, With<Walking>)>,
+) {
+    if keys.just_pressed(KeyCode::W) {
+        if let Ok(e) = not_walking_query.get_single() {
+            commands.entity(e).insert(Walking(WalkDirection::Forward));
         }
     }
-    if keys.pressed(KeyCode::A) {
-        for mut transform in player_query.iter_mut() {
-            transform.rotate_y(time.delta_seconds() * TURN_RATE);
+    if keys.just_pressed(KeyCode::S) {
+        if let Ok(e) = not_walking_query.get_single() {
+            commands.entity(e).insert(Walking(WalkDirection::Backward));
         }
     }
-    if keys.pressed(KeyCode::S) {
-        for mut transform in player_query.iter_mut() {
-            let delta = transform.forward() * SPEED * time.delta_seconds();
-            transform.translation -= delta;
+    if keys.any_just_released([KeyCode::W, KeyCode::S]) {
+        if let Ok(e) = walking_query.get_single() {
+            commands.entity(e).remove::<Walking>();
         }
     }
-    if keys.pressed(KeyCode::D) {
-        for mut transform in player_query.iter_mut() {
-            transform.rotate_y(-time.delta_seconds() * TURN_RATE);
+}
+
+fn strafing_input(
+    mut commands: Commands,
+    keys: Res<Input<KeyCode>>,
+    not_strafing_query: Query<Entity, (With<Player>, Without<Strafing>)>,
+    strafing_query: Query<Entity, (With<Player>, With<Strafing>)>,
+) {
+    if keys.just_pressed(KeyCode::Q) {
+        if let Ok(e) = not_strafing_query.get_single() {
+            commands.entity(e).insert(Strafing(StrafeDirection::Left));
+        }
+    }
+    if keys.just_pressed(KeyCode::E) {
+        if let Ok(e) = not_strafing_query.get_single() {
+            commands.entity(e).insert(Strafing(StrafeDirection::Right));
+        }
+    }
+    if keys.any_just_released([KeyCode::Q, KeyCode::E]) {
+        if let Ok(e) = strafing_query.get_single() {
+            commands.entity(e).remove::<Strafing>();
+        }
+    }
+}
+
+fn turning_input(
+    mut commands: Commands,
+    keys: Res<Input<KeyCode>>,
+    not_turning_query: Query<Entity, (With<Player>, Without<Turning>)>,
+    turning_query: Query<Entity, (With<Player>, With<Turning>)>,
+) {
+    if keys.just_pressed(KeyCode::A) {
+        if let Ok(e) = not_turning_query.get_single() {
+            commands.entity(e).insert(Turning(TurnDirection::Left));
+        }
+    }
+    if keys.just_pressed(KeyCode::D) {
+        if let Ok(e) = not_turning_query.get_single() {
+            commands.entity(e).insert(Turning(TurnDirection::Right));
+        }
+    }
+    if keys.any_just_released([KeyCode::A, KeyCode::D]) {
+        if let Ok(e) = turning_query.get_single() {
+            commands.entity(e).remove::<Turning>();
         }
     }
 }
@@ -100,7 +170,15 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TargetNextEnemyEvent>().add_systems(
             Update,
-            (keyboard_input, handle_target_next_enemy).run_if(in_state(AppState::Game)),
+            (
+                walking_input,
+                strafing_input,
+                turning_input,
+                keyboard_input,
+                attack_input,
+                handle_target_next_enemy,
+            )
+                .run_if(in_state(AppState::Game)),
         );
     }
 }

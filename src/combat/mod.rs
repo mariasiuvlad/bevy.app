@@ -2,36 +2,15 @@ use bevy::prelude::*;
 
 use crate::{app_state::AppState, world3d::Character};
 
-#[derive(Component)]
-pub struct Health(pub i32);
+use self::{
+    attack::{handle_attack, handle_attack_cooldown, AttackEvent},
+    combat_stats::Stats,
+    status_effect::{sprint::SprintPlugin, thorns::ThornsPlugin},
+};
 
-#[derive(Component)]
-pub struct MaxHealth(pub i32);
-
-#[derive(Component)]
-pub struct Energy(pub i32);
-
-#[derive(Component)]
-pub struct MaxEnergy(pub i32);
-
-#[derive(Bundle)]
-pub struct CombatStatsBundle {
-    max_health: MaxHealth,
-    health: Health,
-    max_energy: MaxEnergy,
-    energy: Energy,
-}
-
-impl Default for CombatStatsBundle {
-    fn default() -> Self {
-        CombatStatsBundle {
-            max_health: MaxHealth(20),
-            health: Health(20),
-            max_energy: MaxEnergy(100),
-            energy: Energy(100),
-        }
-    }
-}
+pub mod attack;
+pub mod combat_stats;
+pub mod status_effect;
 
 #[derive(Event, Debug)]
 pub struct DamageTakenEvent(pub i32, pub Entity);
@@ -39,41 +18,23 @@ pub struct DamageTakenEvent(pub i32, pub Entity);
 #[derive(Event, Debug)]
 pub struct CharacterDeathEvent(pub Entity);
 
-#[derive(Event, Debug)]
-pub struct AttackEvent {
-    source: Entity,
-    target: Entity,
-    attack: i32,
-}
-
-impl AttackEvent {
-    pub fn new(source: Entity, target: Entity, attack: i32) -> Self {
-        Self {
-            source,
-            target,
-            attack,
-        }
-    }
-}
-
 fn handle_damage_taken(
     mut ev_damage: EventReader<DamageTakenEvent>,
-    mut character_query: Query<&mut Health, With<Character>>,
+    mut character_query: Query<&mut Stats, With<Character>>,
 ) {
     for ev in ev_damage.read() {
-        info!("{:?} takes {} damage", ev.1, ev.0);
-        if let Ok(mut health) = character_query.get_mut(ev.1) {
-            health.0 -= ev.0;
+        if let Ok(mut stats) = character_query.get_mut(ev.1) {
+            stats.health -= ev.0;
         }
     }
 }
 
 fn handle_health_change(
     mut ev_death: EventWriter<CharacterDeathEvent>,
-    character_query: Query<(Entity, &Health), Changed<Health>>,
+    character_query: Query<(Entity, &Stats), Changed<Stats>>,
 ) {
-    for (e, h) in character_query.iter() {
-        if h.0 <= 0 {
+    for (e, stats) in character_query.iter() {
+        if stats.health <= 0 {
             ev_death.send(CharacterDeathEvent(e));
         }
     }
@@ -91,16 +52,11 @@ fn handle_death(
     }
 }
 
-fn handle_attack(
+fn log_combat(
     mut ev_attack: EventReader<AttackEvent>,
-    mut ev_damage_taken: EventWriter<DamageTakenEvent>,
+    mut ev_damage: EventReader<DamageTakenEvent>,
+    character_query: Query<&Character>,
 ) {
-    for attack_event in ev_attack.read() {
-        ev_damage_taken.send(DamageTakenEvent(attack_event.attack, attack_event.target));
-    }
-}
-
-fn log_attack(mut ev_attack: EventReader<AttackEvent>, character_query: Query<&Character>) {
     for attack_event in ev_attack.read() {
         let source = character_query.get(attack_event.source).unwrap();
         let target = character_query.get(attack_event.target).unwrap();
@@ -109,6 +65,11 @@ fn log_attack(mut ev_attack: EventReader<AttackEvent>, character_query: Query<&C
             "{} attacks {} for {}",
             source.0.name, target.0.name, attack_event.attack
         );
+    }
+
+    for damage_event in ev_damage.read() {
+        let source = character_query.get(damage_event.1).unwrap();
+        info!("{} takes {} damage", source.0.name, damage_event.0);
     }
 }
 
@@ -119,12 +80,14 @@ impl Plugin for CombatPlugin {
         app.add_event::<DamageTakenEvent>()
             .add_event::<AttackEvent>()
             .add_event::<CharacterDeathEvent>()
+            .add_plugins((SprintPlugin, ThornsPlugin))
             .add_systems(
                 Update,
                 (
                     handle_damage_taken,
                     handle_attack,
-                    log_attack,
+                    handle_attack_cooldown,
+                    log_combat,
                     handle_health_change,
                     handle_death,
                 )

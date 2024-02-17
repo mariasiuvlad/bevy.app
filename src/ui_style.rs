@@ -31,6 +31,14 @@ pub fn default_text_style(font: Handle<Font>) -> TextStyle {
     }
 }
 
+pub fn player_ui_text_style(font: Handle<Font>) -> TextStyle {
+    TextStyle {
+        font,
+        font_size: 14.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    }
+}
+
 pub fn nameplate_text_style(font: Handle<Font>) -> TextStyle {
     TextStyle {
         font,

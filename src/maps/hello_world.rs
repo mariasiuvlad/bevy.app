@@ -1,13 +1,10 @@
 use bevy::prelude::*;
 
 use crate::{
-    combat::CombatStatsBundle,
+    combat::{combat_stats::StatsBundle, status_effect::thorns::ThornsEffect},
     texture,
     world3d::{Character, CharacterInfo},
 };
-
-#[derive(Component)]
-pub struct CharacterUI(Entity);
 
 pub fn setup(
     mut commands: Commands,
@@ -39,9 +36,9 @@ pub fn setup(
             transform: Transform::from_xyz(-3.0, 1.0, -8.0),
             ..default()
         },
-        CombatStatsBundle::default(),
+        StatsBundle::default(),
         Character(CharacterInfo {
-            name: String::from("Goblin 1"),
+            name: String::from("Rak'thar"),
         }),
     ));
 
@@ -52,9 +49,12 @@ pub fn setup(
             transform: Transform::from_xyz(3.0, 1.0, -8.0),
             ..default()
         },
-        CombatStatsBundle::default(),
+        StatsBundle::default(),
+        ThornsEffect {
+            timer: Timer::from_seconds(600., TimerMode::Once),
+        },
         Character(CharacterInfo {
-            name: String::from("Goblin 2"),
+            name: String::from("Mog'sha"),
         }),
     ));
 

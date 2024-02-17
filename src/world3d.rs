@@ -1,11 +1,10 @@
 use crate::app_state::AppState;
-use crate::combat::CombatStatsBundle;
+use crate::combat::combat_stats::StatsBundle;
 use crate::input::InputPlugin;
 use crate::maps;
 use crate::texture;
 use bevy::prelude::*;
 
-/// A marker component for our shapes so we can query them separately from the ground plane
 #[derive(Component)]
 pub struct Player;
 
@@ -54,7 +53,7 @@ fn setup(
                 ..default()
             },
             Player,
-            CombatStatsBundle::default(),
+            StatsBundle::default(),
             Character(CharacterInfo {
                 name: String::from("Player"),
             }),

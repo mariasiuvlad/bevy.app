@@ -2,17 +2,17 @@ use bevy::prelude::*;
 
 use crate::{
     app_state::AppState,
-    combat::{Health, MaxHealth},
+    combat::combat_stats::Stats,
     main_menu::UiFont,
     ui_style::nameplate_text_style,
     world3d::{Character, Player, PlayerCamera, PlayerTarget},
 };
+#[derive(Component)]
+pub struct CharacterUI(pub Entity);
 
 #[derive(Component)]
 pub struct PlayerTargetUI(pub Entity);
 
-#[derive(Component)]
-pub struct CharacterUI(pub Entity);
 #[derive(Component)]
 pub struct HealthBarUI(pub Entity);
 
@@ -85,12 +85,11 @@ pub fn setup_nameplates(
 
 pub fn update_nameplates_health(
     mut health_bar_ui_query: Query<(&mut Style, &HealthBarUI)>,
-    character_query: Query<(&Health, &MaxHealth), With<Character>>,
+    character_query: Query<&Stats, With<Character>>,
 ) {
     for (mut style, health_bar_ui) in health_bar_ui_query.iter_mut() {
-        if let Ok((health, max_health)) = character_query.get(health_bar_ui.0) {
-            let current_health_percentage = (health.0 * 100) as f32 / max_health.0 as f32;
-            style.width = Val::Percent(current_health_percentage);
+        if let Ok(stats) = character_query.get(health_bar_ui.0) {
+            style.width = Val::Percent(stats.health_percentage());
         }
     }
 }
@@ -167,9 +166,9 @@ pub fn toggle_nameplates_based_on_distance(
     }
 }
 
-pub struct World3dUiPlugin;
+pub struct NameplatePlugin;
 
-impl Plugin for World3dUiPlugin {
+impl Plugin for NameplatePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
