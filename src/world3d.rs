@@ -1,8 +1,9 @@
+use crate::animation::CharacterAnimationPlugin;
 use crate::app_state::AppState;
 use crate::combat::combat_stats::StatsBundle;
 use crate::input::InputPlugin;
-use crate::maps;
-use crate::texture;
+use crate::maps::hello_world::HelloWorldPlugin;
+use crate::startup::PlayerModel;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -21,35 +22,16 @@ pub struct CharacterInfo {
 #[derive(Component)]
 pub struct PlayerCamera;
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut images: ResMut<Assets<Image>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let debug_material = materials.add(StandardMaterial {
-        base_color_texture: Some(images.add(texture::debug::uv())),
-        ..default()
-    });
-
-    // let shapes = [
-    //     meshes.add(shape::Cube::default().into()),
-    //     meshes.add(shape::Box::default().into()),
-    //     meshes.add(shape::Capsule::default().into()),
-    //     meshes.add(shape::Torus::default().into()),
-    //     meshes.add(shape::Cylinder::default().into()),
-    //     meshes.add(shape::Icosphere::default().try_into().unwrap()),
-    //     meshes.add(shape::UVSphere::default().into()),
-    // ];
-
-    let shape = meshes.add(shape::Capsule::default().into());
-
+fn setup(mut commands: Commands, player_model: Res<PlayerModel>) {
     commands
         .spawn((
-            PbrBundle {
-                mesh: shape,
-                material: debug_material.clone(),
-                transform: Transform::from_xyz(0.0, 1.0, 0.0),
+            SceneBundle {
+                scene: player_model.0.clone(),
+
+                transform: Transform {
+                    rotation: Quat::from_rotation_y(-180.),
+                    ..default()
+                },
                 ..default()
             },
             Player,
@@ -61,8 +43,8 @@ fn setup(
         .with_children(|parent| {
             parent
                 .spawn(Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 9., 12.0)
-                        .looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
+                    transform: Transform::from_xyz(0.0, 4., -6.)
+                        .looking_at(Vec3::new(0., 2., 0.), Vec3::Y),
                     camera: Camera {
                         hdr: true,
                         order: 1,
@@ -78,7 +60,7 @@ pub struct World3dPlugin;
 
 impl Plugin for World3dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Game), (maps::hello_world::setup, setup));
-        app.add_plugins(InputPlugin);
+        app.add_plugins((HelloWorldPlugin, InputPlugin, CharacterAnimationPlugin))
+            .add_systems(OnEnter(AppState::Game), setup);
     }
 }

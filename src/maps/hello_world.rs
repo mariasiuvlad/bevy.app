@@ -1,13 +1,16 @@
 use bevy::prelude::*;
 
 use crate::{
+    app_state::AppState,
     combat::{combat_stats::StatsBundle, status_effect::thorns::ThornsEffect},
+    startup::GoblinModel,
     texture,
     world3d::{Character, CharacterInfo},
 };
 
 pub fn setup(
     mut commands: Commands,
+    goblin_model: Res<GoblinModel>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -21,21 +24,26 @@ pub fn setup(
     //     meshes.add(shape::Icosphere::default().try_into().unwrap()),
     //     meshes.add(shape::UVSphere::default().into()),
     // ];
-
-    let debug_material = materials.add(StandardMaterial {
+    //
+    let _debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(texture::debug::uv())),
         ..default()
     });
 
-    let shape = meshes.add(shape::Cube::default().into());
+    let _shape = meshes.add(shape::Cube::default().into());
 
     commands.spawn((
-        PbrBundle {
-            mesh: shape.clone(),
-            material: debug_material.clone(),
-            transform: Transform::from_xyz(-3.0, 1.0, -8.0),
+        SceneBundle {
+            scene: goblin_model.0.clone(),
+            transform: Transform::from_xyz(-3.0, 0.0, -8.0),
             ..default()
         },
+        // PbrBundle {
+        //     mesh: shape.clone(),
+        //     material: debug_material.clone(),
+        //     transform: Transform::from_xyz(-3.0, 1.0, -8.0),
+        //     ..default()
+        // },
         StatsBundle::default(),
         Character(CharacterInfo {
             name: String::from("Rak'thar"),
@@ -43,10 +51,9 @@ pub fn setup(
     ));
 
     commands.spawn((
-        PbrBundle {
-            mesh: shape.clone(),
-            material: debug_material.clone(),
-            transform: Transform::from_xyz(3.0, 1.0, -8.0),
+        SceneBundle {
+            scene: goblin_model.0.clone(),
+            transform: Transform::from_xyz(3.0, 0.0, -8.0),
             ..default()
         },
         StatsBundle::default(),
@@ -75,4 +82,12 @@ pub fn setup(
         material: materials.add(Color::SILVER.into()),
         ..default()
     });
+}
+
+pub struct HelloWorldPlugin;
+
+impl Plugin for HelloWorldPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(OnEnter(AppState::Game), setup);
+    }
 }

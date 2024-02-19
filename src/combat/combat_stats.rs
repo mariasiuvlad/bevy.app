@@ -23,7 +23,7 @@ impl Default for StatsBundle {
                 health: 20,
                 max_energy: 100,
                 energy: 100,
-                move_speed: 4.,
+                move_speed: 3.,
                 move_speed_modifier: 1.,
             },
         }

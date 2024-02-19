@@ -59,11 +59,9 @@ pub fn handle_attack_cooldown(
     time: Res<Time>,
 ) {
     for (entity, mut cooldown) in q.iter_mut() {
-        // timers gotta be ticked, to work
         cooldown.timer.tick(time.delta());
 
         if cooldown.timer.finished() {
-            // info!("Removing {:?}", cooldown);
             commands.entity(entity).remove::<AttackCooldown>();
         }
     }

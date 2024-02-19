@@ -1,3 +1,5 @@
+use std::ops::Div;
+
 use bevy::prelude::*;
 
 use crate::{app_state::AppState, combat::combat_stats::Stats};
@@ -41,8 +43,8 @@ pub fn handle_walking(
         let delta = transform.forward() * stats.computed_move_speed() * time.delta_seconds();
 
         transform.translation += match walking.0 {
-            WalkDirection::Forward => delta,
-            WalkDirection::Backward => -delta,
+            WalkDirection::Forward => -delta,
+            WalkDirection::Backward => delta.div(2.),
         }
     }
 }

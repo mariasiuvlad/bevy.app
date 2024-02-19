@@ -84,9 +84,9 @@ impl Plugin for CombatPlugin {
                 Update,
                 (
                     handle_damage_taken,
-                    log_combat,
                     handle_health_change,
                     handle_death,
+                    log_combat,
                 )
                     .run_if(in_state(AppState::Game)),
             );

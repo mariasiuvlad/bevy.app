@@ -86,7 +86,7 @@ fn attack_input(
             if let Ok(player_handle) = player_query.get_single() {
                 commands.entity(player_handle).insert(AttackWindUp {
                     ev: AttackEvent::new(player_handle, player_target_handle, 5),
-                    total_duration: Duration::from_secs(1),
+                    total_duration: Duration::from_millis(1000),
                     timer: Timer::from_seconds(1., TimerMode::Once),
                 });
             }
@@ -97,7 +97,7 @@ fn attack_input(
 fn walking_input(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    not_walking_query: Query<Entity, (With<Player>, Without<Walking>)>,
+    not_walking_query: Query<Entity, (With<Player>, (Without<Walking>, Without<AttackWindUp>))>,
     walking_query: Query<Entity, (With<Player>, With<Walking>)>,
 ) {
     if keys.just_pressed(KeyCode::W) {
@@ -120,7 +120,7 @@ fn walking_input(
 fn strafing_input(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    not_strafing_query: Query<Entity, (With<Player>, Without<Strafing>)>,
+    not_strafing_query: Query<Entity, (With<Player>, (Without<Strafing>, Without<AttackWindUp>))>,
     strafing_query: Query<Entity, (With<Player>, With<Strafing>)>,
 ) {
     if keys.just_pressed(KeyCode::Q) {
@@ -143,7 +143,7 @@ fn strafing_input(
 fn turning_input(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    not_turning_query: Query<Entity, (With<Player>, Without<Turning>)>,
+    not_turning_query: Query<Entity, (With<Player>, (Without<Turning>, Without<AttackWindUp>))>,
     turning_query: Query<Entity, (With<Player>, With<Turning>)>,
 ) {
     if keys.just_pressed(KeyCode::A) {

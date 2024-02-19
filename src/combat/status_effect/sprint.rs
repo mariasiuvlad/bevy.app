@@ -16,7 +16,6 @@ pub fn elapse_status_effects(
         status_effect.timer.tick(time.delta());
 
         if status_effect.timer.finished() {
-            info!("Removing {:?}", status_effect);
             commands.entity(entity).remove::<SprintEffect>();
         }
     }
