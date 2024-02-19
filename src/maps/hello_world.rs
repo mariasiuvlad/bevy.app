@@ -3,28 +3,39 @@ use bevy::prelude::*;
 use crate::{
     app_state::AppState,
     combat::{combat_stats::StatsBundle, status_effect::thorns::ThornsEffect},
-    startup::GoblinModel,
+    startup::{Animations, GoblinModel, PlayerModel},
     texture,
-    world3d::{Character, CharacterInfo},
+    world3d::{Character, CharacterInfo, Player, PlayerCamera},
 };
 
-pub fn setup(
+fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let attack_animation = asset_server.load("models/x_bot.glb#Animation0"); // attack
+    let backpedal_animation = asset_server.load("models/x_bot.glb#Animation1"); // backpedal
+    let flinch_animation = asset_server.load("models/x_bot.glb#Animation2"); // flinch
+    let idle_animation = asset_server.load("models/x_bot.glb#Animation3"); // idle
+    let run_animation = asset_server.load("models/x_bot.glb#Animation4"); // run
+    let walk_animation = asset_server.load("models/x_bot.glb#Animation5"); // walk
+    let player_model = asset_server.load("models/x_bot.glb#Scene0");
+
+    commands.insert_resource(PlayerModel(player_model.clone()));
+    commands.insert_resource(GoblinModel(player_model.clone()));
+    commands.insert_resource(Animations {
+        attack: attack_animation,
+        backpedal: backpedal_animation,
+        idle: idle_animation,
+        flinch: flinch_animation,
+        run: run_animation,
+        walk: walk_animation,
+    });
+}
+
+pub fn setup_world(
     mut commands: Commands,
     goblin_model: Res<GoblinModel>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // let shapes = [
-    //     meshes.add(shape::Cube::default().into()),
-    //     meshes.add(shape::Box::default().into()),
-    //     meshes.add(shape::Capsule::default().into()),
-    //     meshes.add(shape::Torus::default().into()),
-    //     meshes.add(shape::Cylinder::default().into()),
-    //     meshes.add(shape::Icosphere::default().try_into().unwrap()),
-    //     meshes.add(shape::UVSphere::default().into()),
-    // ];
-    //
     let _debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(texture::debug::uv())),
         ..default()
@@ -38,12 +49,6 @@ pub fn setup(
             transform: Transform::from_xyz(-3.0, 0.0, -8.0),
             ..default()
         },
-        // PbrBundle {
-        //     mesh: shape.clone(),
-        //     material: debug_material.clone(),
-        //     transform: Transform::from_xyz(-3.0, 1.0, -8.0),
-        //     ..default()
-        // },
         StatsBundle::default(),
         Character(CharacterInfo {
             name: String::from("Rak'thar"),
@@ -84,10 +89,45 @@ pub fn setup(
     });
 }
 
+pub fn setup_player(mut commands: Commands, player_model: Res<PlayerModel>) {
+    commands
+        .spawn((
+            SceneBundle {
+                scene: player_model.0.clone(),
+
+                transform: Transform {
+                    rotation: Quat::from_rotation_y(-180.),
+                    ..default()
+                },
+                ..default()
+            },
+            Player,
+            StatsBundle::default(),
+            Character(CharacterInfo {
+                name: String::from("Player"),
+            }),
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn(Camera3dBundle {
+                    transform: Transform::from_xyz(0.0, 4., -6.)
+                        .looking_at(Vec3::new(0., 2., 0.), Vec3::Y),
+                    camera: Camera {
+                        hdr: true,
+                        order: 1,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(PlayerCamera);
+        });
+}
+
 pub struct HelloWorldPlugin;
 
 impl Plugin for HelloWorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Game), setup);
+        app.add_systems(OnEnter(AppState::Startup), load_assets)
+            .add_systems(OnEnter(AppState::Game), (setup_world, setup_player));
     }
 }
