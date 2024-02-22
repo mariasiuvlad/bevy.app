@@ -1,7 +1,7 @@
 use crate::animation::CharacterAnimationPlugin;
 
 use crate::input::InputPlugin;
-use crate::maps::hello_world::HelloWorldPlugin;
+use crate::maps::rogue_world::RogueWorldPlugin;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -24,6 +24,6 @@ pub struct World3dPlugin;
 
 impl Plugin for World3dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((HelloWorldPlugin, InputPlugin, CharacterAnimationPlugin));
+        app.add_plugins((RogueWorldPlugin, CharacterAnimationPlugin, InputPlugin));
     }
 }

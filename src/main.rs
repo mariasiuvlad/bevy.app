@@ -1,3 +1,4 @@
+mod animated_bundle;
 mod animation;
 mod app_state;
 mod combat;

@@ -22,10 +22,7 @@ pub struct GoblinModel(pub Handle<Scene>);
 struct AssetsLoading(Vec<UntypedHandle>);
 
 fn load_fonts(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // let font_handle = asset_server.load("fonts/JetBrainsMono-Medium.ttf");
-    let font_handle = asset_server.load("fonts/PixelifySans-Regular.ttf");
-
-    commands.insert_resource(UiFont(font_handle.clone()));
+    commands.insert_resource(UiFont(asset_server.load("fonts/PixelifySans-Regular.ttf")));
 }
 
 fn check_fonts_ready(

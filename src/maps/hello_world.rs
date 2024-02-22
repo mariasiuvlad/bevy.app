@@ -123,9 +123,9 @@ pub fn setup_player(mut commands: Commands, player_model: Res<PlayerModel>) {
         });
 }
 
-pub struct HelloWorldPlugin;
+pub struct HelloWorldMapPlugin;
 
-impl Plugin for HelloWorldPlugin {
+impl Plugin for HelloWorldMapPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Startup), load_assets)
             .add_systems(OnEnter(AppState::Game), (setup_world, setup_player));
