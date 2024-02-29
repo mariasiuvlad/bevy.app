@@ -4,7 +4,7 @@ use bevy::{
 };
 
 /// Creates a colorful test pattern
-pub fn uv() -> Image {
+pub fn _uv() -> Image {
     const TEXTURE_SIZE: usize = 8;
 
     let mut palette: [u8; 32] = [

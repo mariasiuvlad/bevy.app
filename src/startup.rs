@@ -2,30 +2,11 @@ use bevy::prelude::*;
 
 use crate::{app_state::AppState, main_menu::UiFont};
 
-#[derive(Resource)]
-pub struct Animations {
-    pub attack: Handle<AnimationClip>,
-    pub backpedal: Handle<AnimationClip>,
-    pub idle: Handle<AnimationClip>,
-    pub flinch: Handle<AnimationClip>,
-    pub run: Handle<AnimationClip>,
-    pub walk: Handle<AnimationClip>,
-}
-
-#[derive(Resource)]
-pub struct PlayerModel(pub Handle<Scene>);
-
-#[derive(Resource)]
-pub struct GoblinModel(pub Handle<Scene>);
-
-#[derive(Resource)]
-struct AssetsLoading(Vec<UntypedHandle>);
-
-fn load_fonts(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(UiFont(asset_server.load("fonts/PixelifySans-Regular.ttf")));
 }
 
-fn check_fonts_ready(
+fn check_assets_ready(
     mut app_state: ResMut<NextState<AppState>>,
     asset_server: Res<AssetServer>,
     ui_font: Res<UiFont>,
@@ -44,10 +25,10 @@ pub struct StartupPlugin;
 impl Plugin for StartupPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UiFont>()
-            .add_systems(OnEnter(AppState::Startup), load_fonts)
+            .add_systems(OnEnter(AppState::Startup), load_assets)
             .add_systems(
                 Update,
-                check_fonts_ready.run_if(in_state(AppState::Startup)),
+                check_assets_ready.run_if(in_state(AppState::Startup)),
             );
     }
 }

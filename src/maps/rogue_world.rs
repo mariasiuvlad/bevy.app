@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{asset::LoadState, prelude::*};
 
 use crate::{
     animated_bundle::{AnimatedModelBundle, AnimationState, AnimationStates, ModelAnimations},
@@ -22,9 +22,15 @@ pub struct GoblinModel(pub Handle<Scene>);
 #[derive(Resource)]
 pub struct Animations<T: Component>(T, pub Vec<Handle<AnimationClip>>);
 
+#[derive(Resource)]
+pub struct AssetsLoading(pub Vec<UntypedHandle>);
+
 fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.insert_resource(HeroModel(asset_server.load("models/hero.glb#Scene0")));
-    commands.insert_resource(GoblinModel(asset_server.load("models/goblin.glb#Scene0")));
+    let hero_model = asset_server.load("models/hero.glb#Scene0");
+    let goblin_model = asset_server.load("models/goblin.glb#Scene0");
+
+    commands.insert_resource(HeroModel(hero_model.clone()));
+    commands.insert_resource(GoblinModel(goblin_model.clone()));
 
     commands.insert_resource(Animations(
         Goblin,
@@ -49,6 +55,27 @@ fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             asset_server.load("models/hero.glb#Animation5"),
         ],
     ));
+
+    commands.insert_resource(AssetsLoading(vec![
+        hero_model.clone_weak().untyped(),
+        goblin_model.clone_weak().untyped(),
+    ]));
+}
+
+fn check_assets_ready(
+    mut app_state: ResMut<NextState<AppState>>,
+    asset_server: Res<AssetServer>,
+    loading: Res<AssetsLoading>,
+) {
+    let y = loading.0.iter().map(|x| asset_server.load_state(x.id()));
+
+    if y.filter(|x| *x != LoadState::Loaded)
+        .collect::<Vec<_>>()
+        .len()
+        == 0
+    {
+        app_state.set(AppState::Game);
+    }
 }
 
 fn setup_hero(
@@ -141,7 +168,11 @@ fn setup_world(
 pub struct RogueWorldPlugin;
 impl Plugin for RogueWorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Startup), load_assets)
+        app.add_systems(OnEnter(AppState::LoadingGame), load_assets)
+            .add_systems(
+                Update,
+                check_assets_ready.run_if(in_state(AppState::LoadingGame)),
+            )
             .add_systems(
                 OnEnter(AppState::Game),
                 (setup_world, setup_lights, setup_hero, setup_goblin),

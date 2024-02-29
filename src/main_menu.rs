@@ -53,7 +53,7 @@ fn button_system(
                 let target = button_target_query.get(children[0]).unwrap();
                 match *target {
                     MainMenuButton::Start => {
-                        app_state.set(AppState::Game);
+                        app_state.set(AppState::LoadingGame);
                         info!("Start game");
                     }
                     MainMenuButton::Quit => {
