@@ -107,7 +107,6 @@ fn setup_hero(
                     transform: Transform::from_xyz(0.0, 4., -6.)
                         .looking_at(Vec3::new(0., 2., 0.), Vec3::Y),
                     camera: Camera {
-                        hdr: true,
                         order: 1,
                         ..default()
                     },
@@ -135,7 +134,7 @@ fn setup_goblin(
         },
         StatsBundle::default(),
         Character(CharacterInfo {
-            name: String::from("Rogue"),
+            name: String::from("Goblin"),
         }),
     ));
 }
@@ -143,12 +142,12 @@ fn setup_goblin(
 fn setup_lights(mut commands: Commands) {
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 9000.0,
+            intensity: 9000000.0,
             range: 100.,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(8.0, 16.0, 8.0),
+        transform: Transform::from_xyz(24.0, 16.0, 24.0),
         ..default()
     });
 }
@@ -165,8 +164,8 @@ fn setup_world(
     });
 }
 
-pub struct RogueWorldPlugin;
-impl Plugin for RogueWorldPlugin {
+pub struct AnimatedModelsPlugin;
+impl Plugin for AnimatedModelsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::LoadingGame), load_assets)
             .add_systems(

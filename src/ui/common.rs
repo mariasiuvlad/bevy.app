@@ -7,6 +7,10 @@ pub fn container() -> NodeBundle {
         style: Style {
             width: Val::Percent(100.),
             height: Val::Percent(100.),
+            display: Display::Flex,
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::FlexStart,
+            justify_content: JustifyContent::FlexStart,
             ..default()
         },
         background_color: BackgroundColor(Color::rgba(0., 0., 0., 0.)),
@@ -19,7 +23,6 @@ pub fn unit_frame() -> NodeBundle {
         style: Style {
             margin: UiRect::all(Val::Px(16.)),
             width: Val::Px(200.),
-            height: Val::Px(40.),
             display: Display::Flex,
             flex_direction: FlexDirection::Column,
             border: UiRect::all(Val::Px(2.)),

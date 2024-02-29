@@ -1,1 +1,1 @@
-pub mod rogue_world;
+pub mod animated_models;
