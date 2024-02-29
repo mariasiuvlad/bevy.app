@@ -26,7 +26,7 @@ use world3d::World3dPlugin;
 
 fn _log_fps(diagnostics: Res<DiagnosticsStore>) {
     if let Some(value) = diagnostics
-        .get(FrameTimeDiagnosticsPlugin::FPS)
+        .get(&FrameTimeDiagnosticsPlugin::FPS)
         .and_then(|fps| fps.smoothed())
     {
         info!("FPS: {}", value)
@@ -35,7 +35,7 @@ fn _log_fps(diagnostics: Res<DiagnosticsStore>) {
 
 fn main() {
     App::new()
-        .add_state::<AppState>()
+        .init_state::<AppState>()
         .add_plugins((
             // FrameTimeDiagnosticsPlugin::default(),
             DefaultPlugins.set(ImagePlugin::default_nearest()),

@@ -1,6 +1,6 @@
 use bevy::{
     prelude::*,
-    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    render::{render_asset::RenderAssetUsages, render_resource::{Extent3d, TextureDimension, TextureFormat}},
 };
 
 /// Creates a colorful test pattern
@@ -28,5 +28,6 @@ pub fn _uv() -> Image {
         TextureDimension::D2,
         &texture_data,
         TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::all(),
     )
 }

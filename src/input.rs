@@ -51,7 +51,7 @@ fn handle_target_next_enemy(
 // @TODO remove *character_query* maybe use events
 fn keyboard_input(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut ev_target_next_enemy: EventWriter<TargetNextEnemyEvent>,
     player_query: Query<Entity, With<Player>>,
     target_query: Query<Entity, With<PlayerTarget>>,
@@ -77,11 +77,11 @@ fn keyboard_input(
 
 fn attack_input(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     player_query: Query<Entity, (With<Player>, Without<AttackCooldown>)>,
     player_target_query: Query<Entity, With<PlayerTarget>>,
 ) {
-    if keys.just_pressed(KeyCode::R) {
+    if keys.just_pressed(KeyCode::KeyR) {
         if let Ok(player_target_handle) = player_target_query.get_single() {
             if let Ok(player_handle) = player_query.get_single() {
                 commands.entity(player_handle).insert(AttackWindUp {
@@ -96,21 +96,21 @@ fn attack_input(
 
 fn walking_input(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     not_walking_query: Query<Entity, (With<Player>, (Without<Walking>, Without<AttackWindUp>))>,
     walking_query: Query<Entity, (With<Player>, With<Walking>)>,
 ) {
-    if keys.just_pressed(KeyCode::W) {
+    if keys.just_pressed(KeyCode::KeyW) {
         if let Ok(e) = not_walking_query.get_single() {
             commands.entity(e).insert(Walking(WalkDirection::Forward));
         }
     }
-    if keys.just_pressed(KeyCode::S) {
+    if keys.just_pressed(KeyCode::KeyS) {
         if let Ok(e) = not_walking_query.get_single() {
             commands.entity(e).insert(Walking(WalkDirection::Backward));
         }
     }
-    if keys.any_just_released([KeyCode::W, KeyCode::S]) {
+    if keys.any_just_released([KeyCode::KeyW, KeyCode::KeyS]) {
         if let Ok(e) = walking_query.get_single() {
             commands.entity(e).remove::<Walking>();
         }
@@ -119,21 +119,21 @@ fn walking_input(
 
 fn strafing_input(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     not_strafing_query: Query<Entity, (With<Player>, (Without<Strafing>, Without<AttackWindUp>))>,
     strafing_query: Query<Entity, (With<Player>, With<Strafing>)>,
 ) {
-    if keys.just_pressed(KeyCode::Q) {
+    if keys.just_pressed(KeyCode::KeyQ) {
         if let Ok(e) = not_strafing_query.get_single() {
             commands.entity(e).insert(Strafing(StrafeDirection::Left));
         }
     }
-    if keys.just_pressed(KeyCode::E) {
+    if keys.just_pressed(KeyCode::KeyE) {
         if let Ok(e) = not_strafing_query.get_single() {
             commands.entity(e).insert(Strafing(StrafeDirection::Right));
         }
     }
-    if keys.any_just_released([KeyCode::Q, KeyCode::E]) {
+    if keys.any_just_released([KeyCode::KeyQ, KeyCode::KeyE]) {
         if let Ok(e) = strafing_query.get_single() {
             commands.entity(e).remove::<Strafing>();
         }
@@ -142,21 +142,21 @@ fn strafing_input(
 
 fn turning_input(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     not_turning_query: Query<Entity, (With<Player>, (Without<Turning>, Without<AttackWindUp>))>,
     turning_query: Query<Entity, (With<Player>, With<Turning>)>,
 ) {
-    if keys.just_pressed(KeyCode::A) {
+    if keys.just_pressed(KeyCode::KeyA) {
         if let Ok(e) = not_turning_query.get_single() {
             commands.entity(e).insert(Turning(TurnDirection::Left));
         }
     }
-    if keys.just_pressed(KeyCode::D) {
+    if keys.just_pressed(KeyCode::KeyD) {
         if let Ok(e) = not_turning_query.get_single() {
             commands.entity(e).insert(Turning(TurnDirection::Right));
         }
     }
-    if keys.any_just_released([KeyCode::A, KeyCode::D]) {
+    if keys.any_just_released([KeyCode::KeyA, KeyCode::KeyD]) {
         if let Ok(e) = turning_query.get_single() {
             commands.entity(e).remove::<Turning>();
         }
