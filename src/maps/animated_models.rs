@@ -1,9 +1,12 @@
-use bevy::{asset::LoadState, prelude::*};
+use std::f32::consts::PI;
+
+use bevy::{asset::LoadState, pbr::CascadeShadowConfigBuilder, prelude::*};
 
 use crate::{
     animated_bundle::{AnimatedModelBundle, AnimationState, AnimationStates, ModelAnimations},
     app_state::AppState,
     combat::combat_stats::StatsBundle,
+    components::meta::Name,
     world3d::{Character, CharacterInfo, Player, PlayerCamera},
 };
 
@@ -85,13 +88,14 @@ fn setup_hero(
 ) {
     commands
         .spawn((
+            Name::new("Hero"),
             Player,
             Hero,
             AnimatedModelBundle {
                 animation_state: AnimationState(AnimationStates::Idle),
                 scene: SceneBundle {
                     scene: hero_model.0.clone(),
-                    transform: Transform::from_xyz(0.0, 0.0, -8.0),
+                    transform: Transform::from_xyz(3.0, 0.0, -8.0),
                     ..default()
                 },
                 animations: ModelAnimations::from_vec(&hero_animations.1),
@@ -128,7 +132,7 @@ fn setup_goblin(
             animations: ModelAnimations::from_vec(&goblin_animations.1),
             scene: SceneBundle {
                 scene: goblin_model.0.clone(),
-                transform: Transform::from_xyz(3.0, 0.0, -8.0),
+                transform: Transform::from_xyz(3.0, 0.0, 8.0),
                 ..default()
             },
         },
@@ -140,14 +144,38 @@ fn setup_goblin(
 }
 
 fn setup_lights(mut commands: Commands) {
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 9000000.0,
-            range: 100.,
+    // commands.spawn(PointLightBundle {
+    //     point_light: PointLight {
+    //         intensity: 9000000.0,
+    //         range: 100.,
+    //         shadows_enabled: true,
+    //         ..default()
+    //     },
+    //     transform: Transform::from_xyz(24.0, 16.0, 24.0),
+    //     ..default()
+    // });
+
+    // directional 'sun' light
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: light_consts::lux::OVERCAST_DAY,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(24.0, 16.0, 24.0),
+        transform: Transform {
+            translation: Vec3::new(0.0, 2.0, 0.0),
+            rotation: Quat::from_rotation_x(-PI / 4.),
+            ..default()
+        },
+        // The default cascade config is designed to handle large scenes.
+        // As this example has a much smaller world, we can tighten the shadow
+        // bounds for better visual quality.
+        cascade_shadow_config: CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 4.0,
+            maximum_distance: 10.0,
+            ..default()
+        }
+        .into(),
         ..default()
     });
 }

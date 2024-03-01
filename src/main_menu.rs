@@ -1,4 +1,5 @@
-use crate::app_state::AppState;
+ use crate::app_state::AppState;
+use crate::components::cleanup::cleanup;
 use crate::ui_style::{default_button_style, default_menu_style, default_text_style};
 use bevy::app::AppExit;
 use bevy::prelude::*;
@@ -7,13 +8,16 @@ const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
+#[derive(Event, Debug)]
+pub struct ButtonPressed(pub MainMenuButton);
+
 #[derive(Default, Resource)]
 pub struct UiFont(pub Handle<Font>);
 
 #[derive(Component)]
 struct MainMenuUI;
 
-#[derive(Component, Debug, PartialEq)]
+#[derive(Component, Debug, PartialEq, Clone, Copy)]
 pub enum MainMenuButton {
     Start,
     Options,
@@ -33,37 +37,53 @@ fn default_button_bundle() -> ButtonBundle {
     }
 }
 
-fn button_system(
+fn handle_button_press(
     mut app_state: ResMut<NextState<AppState>>,
     mut exit: EventWriter<AppExit>,
-    mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &mut BorderColor,
-            &Children,
-        ),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut ev_button_pressed: EventReader<ButtonPressed>,
+) {
+    for ev in ev_button_pressed.read() {
+        match ev.0 {
+            MainMenuButton::Start => {
+                app_state.set(AppState::LoadingGame);
+                info!("Start game");
+            }
+            MainMenuButton::Quit => {
+                exit.send(AppExit);
+                info!("Quit game");
+            }
+            MainMenuButton::Options => {
+                info!("Options");
+            }
+        }
+    }
+}
+
+fn button_press(
+    mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
+    mut ev_button_pressed: EventWriter<ButtonPressed>,
     button_target_query: Query<&MainMenuButton>,
 ) {
-    for (interaction, mut color, mut border_color, children) in &mut interaction_query {
+    for (interaction, children) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                let target = button_target_query.get(children[0]).unwrap();
-                match *target {
-                    MainMenuButton::Start => {
-                        app_state.set(AppState::LoadingGame);
-                        info!("Start game");
-                    }
-                    MainMenuButton::Quit => {
-                        exit.send(AppExit);
-                        info!("Quit game");
-                    }
-                    MainMenuButton::Options => {
-                        info!("Options");
-                    }
-                }
+                let target: &MainMenuButton = button_target_query.get(children[0]).unwrap();
+                ev_button_pressed.send(ButtonPressed(*target));
+            }
+            _ => {}
+        }
+    }
+}
+
+fn button_feedback(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor, &mut BorderColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, mut color, mut border_color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::RED;
             }
@@ -80,19 +100,12 @@ fn button_system(
 }
 
 fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
-    commands.spawn(Camera2dBundle {
-        camera: Camera {
-            order: 0,
-            ..default()
-        },
-        ..default()
-    });
     commands
         .spawn((
             MainMenuUI,
             NodeBundle {
                 style: default_menu_style(),
-                background_color: BackgroundColor(Color::GRAY),
+                // background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
         ))
@@ -130,19 +143,14 @@ fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
         });
 }
 
-fn cleanup_ui(mut commands: Commands, mut query: Query<(Entity, &MainMenuUI)>) {
-    for (e, _) in query.iter_mut() {
-        commands.entity(e).despawn_recursive()
-    }
-}
-
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UiFont>()
+            .add_event::<ButtonPressed>()
             .add_systems(OnEnter(AppState::MainMenu), setup_ui)
-            .add_systems(OnExit(AppState::MainMenu), cleanup_ui)
-            .add_systems(Update, button_system);
+            .add_systems(OnExit(AppState::MainMenu), cleanup::<MainMenuUI>)
+            .add_systems(Update, (button_press, button_feedback, handle_button_press));
     }
 }

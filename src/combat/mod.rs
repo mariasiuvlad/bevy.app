@@ -47,7 +47,7 @@ fn handle_death(
 ) {
     for ev in ev_death.read() {
         if let Ok(character_handle) = character_query.get(ev.0) {
-            commands.entity(character_handle).despawn();
+            commands.entity(character_handle).despawn_recursive();
         }
     }
 }

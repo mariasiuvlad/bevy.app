@@ -2,6 +2,7 @@ mod animated_bundle;
 mod animation;
 mod app_state;
 mod combat;
+mod components;
 mod input;
 mod main_menu;
 mod maps;
@@ -14,31 +15,24 @@ mod ui_style;
 mod world3d;
 
 use app_state::AppState;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use combat::CombatPlugin;
 use main_menu::MainMenuPlugin;
 use movement::MovementPlugin;
 use nameplate::NameplatePlugin;
 use startup::StartupPlugin;
+use ui::fps::FpsPlugin;
 use ui::UiPlugin;
 use world3d::World3dPlugin;
-
-fn _log_fps(diagnostics: Res<DiagnosticsStore>) {
-    if let Some(value) = diagnostics
-        .get(&FrameTimeDiagnosticsPlugin::FPS)
-        .and_then(|fps| fps.smoothed())
-    {
-        info!("FPS: {}", value)
-    }
-}
 
 fn main() {
     App::new()
         .init_state::<AppState>()
+        .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .add_plugins((
-            // FrameTimeDiagnosticsPlugin::default(),
             DefaultPlugins.set(ImagePlugin::default_nearest()),
+            FpsPlugin,
             StartupPlugin,
             MainMenuPlugin,
             CombatPlugin,

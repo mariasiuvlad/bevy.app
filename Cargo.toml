@@ -7,3 +7,12 @@ edition = "2021"
 
 [dependencies]
 bevy = { version = "0.13.0", features = ["dynamic_linking"] }
+
+[profile.dev]
+debug = 0
+strip = "debuginfo"
+opt-level = 0       # Switch to 1 for more runtime performance
+# overflow-checks = false # Uncomment for better math performance
+
+[profile.dev.package."*"]
+opt-level = 2

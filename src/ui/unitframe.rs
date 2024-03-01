@@ -1,4 +1,5 @@
 use crate::{
+    app_state::AppState,
     combat::combat_stats::Stats,
     main_menu::UiFont,
     world3d::{Character, Player, PlayerTarget},
@@ -124,5 +125,40 @@ pub fn toggle_ui<T: Component>(
             Err(_) => style.display = Display::None,
             Ok(_) => style.display = Display::Flex,
         }
+    }
+}
+
+pub struct PlayerNameplatePlugin;
+impl Plugin for PlayerNameplatePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            (
+                update_health_value::<Player>,
+                update_energy_value::<Player>,
+                update_health_percentage::<Player>,
+                update_energy_percentage::<Player>,
+                update_name::<Player>,
+            )
+                .run_if(in_state(AppState::Game)),
+        );
+    }
+}
+
+pub struct PlayerTargetNameplatePlugin;
+impl Plugin for PlayerTargetNameplatePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            (
+                update_health_value::<PlayerTarget>,
+                update_energy_value::<PlayerTarget>,
+                update_health_percentage::<PlayerTarget>,
+                update_energy_percentage::<PlayerTarget>,
+                update_name::<PlayerTarget>,
+                toggle_ui::<PlayerTarget>,
+            )
+                .run_if(in_state(AppState::Game)),
+        );
     }
 }
