@@ -1,5 +1,5 @@
- use crate::app_state::AppState;
-use crate::components::cleanup::cleanup;
+use crate::app_state::AppState;
+use crate::components::cleanup::{cleanup, MainMenuClose};
 use crate::ui_style::{default_button_style, default_menu_style, default_text_style};
 use bevy::app::AppExit;
 use bevy::prelude::*;
@@ -13,9 +13,6 @@ pub struct ButtonPressed(pub MainMenuButton);
 
 #[derive(Default, Resource)]
 pub struct UiFont(pub Handle<Font>);
-
-#[derive(Component)]
-struct MainMenuUI;
 
 #[derive(Component, Debug, PartialEq, Clone, Copy)]
 pub enum MainMenuButton {
@@ -102,7 +99,7 @@ fn button_feedback(
 fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
     commands
         .spawn((
-            MainMenuUI,
+            MainMenuClose,
             NodeBundle {
                 style: default_menu_style(),
                 // background_color: BackgroundColor(Color::BLACK),
@@ -150,7 +147,7 @@ impl Plugin for MainMenuPlugin {
         app.init_resource::<UiFont>()
             .add_event::<ButtonPressed>()
             .add_systems(OnEnter(AppState::MainMenu), setup_ui)
-            .add_systems(OnExit(AppState::MainMenu), cleanup::<MainMenuUI>)
+            .add_systems(OnExit(AppState::MainMenu), cleanup::<MainMenuClose>)
             .add_systems(Update, (button_press, button_feedback, handle_button_press));
     }
 }

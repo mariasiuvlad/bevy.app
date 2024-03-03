@@ -85,7 +85,7 @@ fn start_attack_animation(
     mut commands: Commands,
     attacking_player_query: Query<Entity, Added<AttackWindUp>>,
 ) {
-    if let Ok(player_handle) = attacking_player_query.get_single() {
+    for player_handle in attacking_player_query.iter() {
         commands
             .entity(player_handle)
             .insert(AnimationState(AnimationStates::Attack));

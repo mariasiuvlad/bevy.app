@@ -6,7 +6,12 @@ use crate::{
     animated_bundle::{AnimatedModelBundle, AnimationState, AnimationStates, ModelAnimations},
     app_state::AppState,
     combat::combat_stats::StatsBundle,
-    components::meta::Name,
+    components::{cleanup, meta::Name},
+    get_single,
+    mouse::{cursor_grab, cursor_ungrab},
+    movement::{WalkDirection, Walking},
+    movement_new::MovementNew,
+    player_camera::{self, OrbitCamera},
     world3d::{Character, CharacterInfo, Player, PlayerCamera},
 };
 
@@ -86,38 +91,25 @@ fn setup_hero(
     hero_model: Res<HeroModel>,
     hero_animations: Res<Animations<Hero>>,
 ) {
-    commands
-        .spawn((
-            Name::new("Hero"),
-            Player,
-            Hero,
-            AnimatedModelBundle {
-                animation_state: AnimationState(AnimationStates::Idle),
-                scene: SceneBundle {
-                    scene: hero_model.0.clone(),
-                    transform: Transform::from_xyz(3.0, 0.0, -8.0),
-                    ..default()
-                },
-                animations: ModelAnimations::from_vec(&hero_animations.1),
+    commands.spawn((
+        Name::new("Hero"),
+        Player,
+        Hero,
+        AnimatedModelBundle {
+            animation_state: AnimationState(AnimationStates::Idle),
+            scene: SceneBundle {
+                scene: hero_model.0.clone(),
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                ..default()
             },
-            StatsBundle::default(),
-            Character(CharacterInfo {
-                name: String::from("Hero"),
-            }),
-        ))
-        .with_children(|parent| {
-            parent
-                .spawn(Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 4., -6.)
-                        .looking_at(Vec3::new(0., 2., 0.), Vec3::Y),
-                    camera: Camera {
-                        order: 1,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .insert(PlayerCamera);
-        });
+            animations: ModelAnimations::from_vec(&hero_animations.1),
+        },
+        MovementNew::default(),
+        StatsBundle::default(),
+        Character(CharacterInfo {
+            name: String::from("Hero"),
+        }),
+    ));
 }
 
 fn setup_goblin(
@@ -127,12 +119,13 @@ fn setup_goblin(
 ) {
     commands.spawn((
         Goblin,
+        Walking(WalkDirection::Forward),
         AnimatedModelBundle {
             animation_state: AnimationState(AnimationStates::Idle),
             animations: ModelAnimations::from_vec(&goblin_animations.1),
             scene: SceneBundle {
                 scene: goblin_model.0.clone(),
-                transform: Transform::from_xyz(3.0, 0.0, 8.0),
+                transform: Transform::from_xyz(0.0, 0.0, 15.0),
                 ..default()
             },
         },
@@ -144,18 +137,6 @@ fn setup_goblin(
 }
 
 fn setup_lights(mut commands: Commands) {
-    // commands.spawn(PointLightBundle {
-    //     point_light: PointLight {
-    //         intensity: 9000000.0,
-    //         range: 100.,
-    //         shadows_enabled: true,
-    //         ..default()
-    //     },
-    //     transform: Transform::from_xyz(24.0, 16.0, 24.0),
-    //     ..default()
-    // });
-
-    // directional 'sun' light
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: light_consts::lux::OVERCAST_DAY,
@@ -172,7 +153,7 @@ fn setup_lights(mut commands: Commands) {
         // bounds for better visual quality.
         cascade_shadow_config: CascadeShadowConfigBuilder {
             first_cascade_far_bound: 4.0,
-            maximum_distance: 10.0,
+            maximum_distance: 20.0,
             ..default()
         }
         .into(),
@@ -192,17 +173,48 @@ fn setup_world(
     });
 }
 
+pub fn setup_player_camera(mut commands: Commands, player_query: Query<Entity, With<Player>>) {
+    let player_entity = get_single!(player_query);
+
+    commands.spawn((
+        Name::new("Player Camera"),
+        cleanup::LevelUnload,
+        PlayerCamera,
+        OrbitCamera::new(10., Vec3::ZERO, Some(player_entity)),
+        Camera3dBundle {
+            transform: Transform::from_translation(Vec3::new(20., 20., 20.)),
+            camera: Camera {
+                order: 1,
+                ..default()
+            },
+            ..default()
+        },
+    ));
+}
+
 pub struct AnimatedModelsPlugin;
 impl Plugin for AnimatedModelsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::LoadingGame), load_assets)
+        app.add_event::<player_camera::OrbitCameraEvents>()
+            .add_systems(OnEnter(AppState::LoadingGame), load_assets)
             .add_systems(
                 Update,
-                check_assets_ready.run_if(in_state(AppState::LoadingGame)),
+                (
+                    check_assets_ready.run_if(in_state(AppState::LoadingGame)),
+                    (player_camera::follow_target,).run_if(in_state(AppState::Game)),
+                ),
             )
             .add_systems(
                 OnEnter(AppState::Game),
-                (setup_world, setup_lights, setup_hero, setup_goblin),
-            );
+                (
+                    cursor_grab,
+                    setup_world,
+                    setup_lights,
+                    setup_hero,
+                    setup_goblin,
+                    setup_player_camera.after(setup_hero),
+                ),
+            )
+            .add_systems(OnExit(AppState::Game), cursor_ungrab);
     }
 }

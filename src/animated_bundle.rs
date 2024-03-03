@@ -1,6 +1,6 @@
 use bevy::{prelude::*, scene::SceneBundle};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AnimationStates {
     Idle,
     Walk,
@@ -10,7 +10,7 @@ pub enum AnimationStates {
     Flinch,
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct AnimationState(pub AnimationStates);
 
 #[derive(Component)]

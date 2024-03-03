@@ -3,7 +3,9 @@ use bevy::prelude::*;
 use crate::{app_state::AppState, main_menu::UiFont};
 
 fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.insert_resource(UiFont(asset_server.load("fonts/PixelifySans-Regular.ttf")));
+    let handle = asset_server.load("fonts/MadimiOne-Regular.ttf");
+
+    commands.insert_resource(UiFont(handle));
 }
 
 fn check_assets_ready(

@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{
     app_state::AppState,
     combat::combat_stats::Stats,
+    get_single,
     main_menu::UiFont,
     ui_style::nameplate_text_style,
     world3d::{Character, Player, PlayerCamera, PlayerTarget},
@@ -100,23 +101,20 @@ pub fn update_nameplates_position(
     character_query: Query<&Transform, With<Character>>,
     player_camera_query: Query<(&Camera, &GlobalTransform), With<PlayerCamera>>,
 ) {
-    if let Ok((camera, camera_transform)) = player_camera_query.get_single() {
-        for (ui_handle, mut style, character) in character_ui_query.iter_mut() {
-            match character_query.get(character.0) {
-                Ok(character_transform) => {
-                    match camera
-                        .world_to_viewport(camera_transform, character_transform.translation)
-                    {
-                        Some(coords) => {
-                            style.left = Val::Px(coords.x - 80.);
-                            style.top = Val::Px(coords.y - 80.);
-                        }
-                        None => {}
+    let (camera, camera_transform) = get_single!(player_camera_query);
+    for (ui_handle, mut style, character) in character_ui_query.iter_mut() {
+        match character_query.get(character.0) {
+            Ok(character_transform) => {
+                match camera.world_to_viewport(camera_transform, character_transform.translation) {
+                    Some(coords) => {
+                        style.left = Val::Px(coords.x - 80.);
+                        style.top = Val::Px(coords.y - 80.);
                     }
+                    None => {}
                 }
-                Err(_) => {
-                    commands.entity(ui_handle).despawn_recursive();
-                }
+            }
+            Err(_) => {
+                commands.entity(ui_handle).despawn_recursive();
             }
         }
     }
@@ -143,23 +141,22 @@ pub fn toggle_nameplates_based_on_distance(
     character_query: Query<(&Transform, Option<&PlayerTarget>), With<Character>>,
     player_query: Query<&Transform, With<Player>>,
 ) {
-    if let Ok(player_transform) = player_query.get_single() {
-        for (mut ui_style, character_ui) in character_ui_query.iter_mut() {
-            if let Ok((character_transform, player_target)) = character_query.get(character_ui.0) {
-                match player_target {
-                    Some(_) => {
-                        ui_style.display = Display::Flex;
-                    }
-                    None => {
-                        let distance = player_transform
-                            .translation
-                            .distance(character_transform.translation);
+    let player_transform = get_single!(player_query);
+    for (mut ui_style, character_ui) in character_ui_query.iter_mut() {
+        if let Ok((character_transform, player_target)) = character_query.get(character_ui.0) {
+            match player_target {
+                Some(_) => {
+                    ui_style.display = Display::Flex;
+                }
+                None => {
+                    let distance = player_transform
+                        .translation
+                        .distance(character_transform.translation);
 
-                        ui_style.display = match distance < 15.0 {
-                            true => Display::Flex,
-                            false => Display::None,
-                        };
-                    }
+                    ui_style.display = match distance < 15.0 {
+                        true => Display::Flex,
+                        false => Display::None,
+                    };
                 }
             }
         }

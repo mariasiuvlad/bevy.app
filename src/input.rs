@@ -8,6 +8,7 @@ use crate::{
         attack::{AttackCooldown, AttackEvent, AttackWindUp},
         status_effect::sprint::SprintEffect,
     },
+    get_single,
     movement::{StrafeDirection, Strafing, TurnDirection, Turning, WalkDirection, Walking},
     world3d::{Character, Player, PlayerTarget},
 };
@@ -48,7 +49,6 @@ fn handle_target_next_enemy(
     }
 }
 
-// @TODO remove *character_query* maybe use events
 fn keyboard_input(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
@@ -58,17 +58,15 @@ fn keyboard_input(
 ) {
     // Skills
     if keys.just_pressed(KeyCode::Space) {
-        if let Ok(e) = player_query.get_single() {
-            commands.entity(e).insert(SprintEffect {
-                timer: Timer::from_seconds(5., TimerMode::Once),
-            });
-        }
+        let e = get_single!(player_query);
+        commands.entity(e).insert(SprintEffect {
+            timer: Timer::from_seconds(5., TimerMode::Once),
+        });
     }
     // Targeting
     if keys.just_pressed(KeyCode::Escape) {
-        if let Ok(e) = target_query.get_single() {
-            commands.entity(e).remove::<PlayerTarget>();
-        }
+        let e = get_single!(target_query);
+        commands.entity(e).remove::<PlayerTarget>();
     }
     if keys.just_pressed(KeyCode::Tab) {
         ev_target_next_enemy.send(TargetNextEnemyEvent);
@@ -82,15 +80,13 @@ fn attack_input(
     player_target_query: Query<Entity, With<PlayerTarget>>,
 ) {
     if keys.just_pressed(KeyCode::KeyR) {
-        if let Ok(player_target_handle) = player_target_query.get_single() {
-            if let Ok(player_handle) = player_query.get_single() {
-                commands.entity(player_handle).insert(AttackWindUp {
-                    ev: AttackEvent::new(player_handle, player_target_handle, 5),
-                    total_duration: Duration::from_millis(1000),
-                    timer: Timer::from_seconds(1., TimerMode::Once),
-                });
-            }
-        }
+        let player_target_handle = get_single!(player_target_query);
+        let player_handle = get_single!(player_query);
+        commands.entity(player_handle).insert(AttackWindUp {
+            ev: AttackEvent::new(player_handle, player_target_handle, 5),
+            total_duration: Duration::from_millis(1000),
+            timer: Timer::from_seconds(1., TimerMode::Once),
+        });
     }
 }
 
@@ -101,19 +97,16 @@ fn walking_input(
     walking_query: Query<Entity, (With<Player>, With<Walking>)>,
 ) {
     if keys.just_pressed(KeyCode::KeyW) {
-        if let Ok(e) = not_walking_query.get_single() {
-            commands.entity(e).insert(Walking(WalkDirection::Forward));
-        }
+        let e = get_single!(not_walking_query);
+        commands.entity(e).insert(Walking(WalkDirection::Forward));
     }
     if keys.just_pressed(KeyCode::KeyS) {
-        if let Ok(e) = not_walking_query.get_single() {
-            commands.entity(e).insert(Walking(WalkDirection::Backward));
-        }
+        let e = get_single!(not_walking_query);
+        commands.entity(e).insert(Walking(WalkDirection::Backward));
     }
     if keys.any_just_released([KeyCode::KeyW, KeyCode::KeyS]) {
-        if let Ok(e) = walking_query.get_single() {
-            commands.entity(e).remove::<Walking>();
-        }
+        let e = get_single!(walking_query);
+        commands.entity(e).remove::<Walking>();
     }
 }
 
@@ -124,19 +117,16 @@ fn strafing_input(
     strafing_query: Query<Entity, (With<Player>, With<Strafing>)>,
 ) {
     if keys.just_pressed(KeyCode::KeyQ) {
-        if let Ok(e) = not_strafing_query.get_single() {
-            commands.entity(e).insert(Strafing(StrafeDirection::Left));
-        }
+        let e = get_single!(not_strafing_query);
+        commands.entity(e).insert(Strafing(StrafeDirection::Left));
     }
     if keys.just_pressed(KeyCode::KeyE) {
-        if let Ok(e) = not_strafing_query.get_single() {
-            commands.entity(e).insert(Strafing(StrafeDirection::Right));
-        }
+        let e = get_single!(not_strafing_query);
+        commands.entity(e).insert(Strafing(StrafeDirection::Right));
     }
     if keys.any_just_released([KeyCode::KeyQ, KeyCode::KeyE]) {
-        if let Ok(e) = strafing_query.get_single() {
-            commands.entity(e).remove::<Strafing>();
-        }
+        let e = get_single!(strafing_query);
+        commands.entity(e).remove::<Strafing>();
     }
 }
 
@@ -147,19 +137,16 @@ fn turning_input(
     turning_query: Query<Entity, (With<Player>, With<Turning>)>,
 ) {
     if keys.just_pressed(KeyCode::KeyA) {
-        if let Ok(e) = not_turning_query.get_single() {
-            commands.entity(e).insert(Turning(TurnDirection::Left));
-        }
+        let e = get_single!(not_turning_query);
+        commands.entity(e).insert(Turning(TurnDirection::Left));
     }
     if keys.just_pressed(KeyCode::KeyD) {
-        if let Ok(e) = not_turning_query.get_single() {
-            commands.entity(e).insert(Turning(TurnDirection::Right));
-        }
+        let e = get_single!(not_turning_query);
+        commands.entity(e).insert(Turning(TurnDirection::Right));
     }
     if keys.any_just_released([KeyCode::KeyA, KeyCode::KeyD]) {
-        if let Ok(e) = turning_query.get_single() {
-            commands.entity(e).remove::<Turning>();
-        }
+        let e = get_single!(turning_query);
+        commands.entity(e).remove::<Turning>();
     }
 }
 
@@ -170,9 +157,9 @@ impl Plugin for InputPlugin {
         app.add_event::<TargetNextEnemyEvent>().add_systems(
             Update,
             (
-                walking_input,
-                strafing_input,
-                turning_input,
+                // walking_input,
+                // strafing_input,
+                // turning_input,
                 keyboard_input,
                 attack_input,
                 handle_target_next_enemy,
