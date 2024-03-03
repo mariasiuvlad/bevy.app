@@ -9,24 +9,19 @@ use crate::{
 
 #[derive(Component)]
 pub struct MovementNew {
-    pub v: Vec3,
     pub x: f32,
     pub z: f32,
 }
 
 impl Default for MovementNew {
     fn default() -> Self {
-        Self {
-            v: Vec3::ZERO,
-            x: 0.,
-            z: 0.,
-        }
+        Self { x: 0., z: 0. }
     }
 }
 
 impl MovementNew {
-    pub fn from(v: Vec3) -> Self {
-        Self { v, x: 0., z: 0. }
+    pub fn from(x: f32, z: f32) -> Self {
+        Self { x, z }
     }
 }
 
@@ -63,14 +58,41 @@ fn apply_movement(
 ) {
     let camera_t = get_single!(camera_q);
     for (movement, mut t) in move_q.iter_mut() {
-        let mut v = camera_t.forward() * movement.x + camera_t.local_x() * movement.z;
-        v = Vec3::new(v.x, 0., v.z);
-        t.translation += v * time.delta_seconds() * 3.;
+        let mut look_to: Vec3 = camera_t.forward() * movement.x + camera_t.local_x() * movement.z;
+        look_to.y = 0.;
 
-        if v != Vec3::ZERO {
-            let mut look_to = -v.normalize();
+        // movement
+        t.translation += look_to.normalize_or_zero() * time.delta_seconds() * 3.;
+
+        // rotation
+        if look_to != Vec3::ZERO && look_to != t.forward().normalize() {
             look_to.y = 0.;
-            t.look_to(look_to, Vec3::Y);
+
+            t.rotation = t.rotation.slerp(
+                t.looking_to(-look_to.normalize(), Vec3::Y).rotation,
+                0.1 * time.delta_seconds() * 80.,
+            );
+        }
+    }
+}
+
+fn apply_rotation(
+    time: Res<Time>,
+    mut move_q: Query<(&MovementNew, &mut Transform), Without<PlayerCamera>>,
+    camera_q: Query<&Transform, With<PlayerCamera>>,
+) {
+    let camera_t = get_single!(camera_q);
+    for (movement, mut t) in move_q.iter_mut() {
+        let mut look_to = camera_t.forward() * movement.x + camera_t.local_x() * movement.z;
+        look_to.y = 0.;
+
+        if look_to != Vec3::ZERO && look_to != t.forward().normalize() {
+            look_to.y = 0.;
+
+            t.rotation = t.rotation.slerp(
+                t.looking_to(-look_to, Vec3::Y).rotation,
+                0.1 * time.delta_seconds() * 80.,
+            );
         }
     }
 }
@@ -92,7 +114,12 @@ impl Plugin for MovementNewPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (apply_movement, player_movement, movement_animations).run_if(in_state(AppState::Game)),
+            (
+                player_movement,
+                (apply_movement).after(player_movement),
+                movement_animations,
+            )
+                .run_if(in_state(AppState::Game)),
         );
     }
 }

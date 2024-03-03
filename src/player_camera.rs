@@ -114,7 +114,7 @@ pub fn follow_target(
         match camera.target {
             Some(e) => {
                 if let Ok(transform) = transform_query.get(e) {
-                    camera.center = transform.translation + Vec3::Y;
+                    camera.center = camera.center.lerp(transform.translation + Vec3::Y, 0.02);
                 }
             }
             None => return,
