@@ -9,9 +9,8 @@ use crate::{
     components::{cleanup, meta::Name},
     get_single,
     mouse::{cursor_grab, cursor_ungrab},
-    movement::{WalkDirection, Walking},
-    movement_new::MovementNew,
-    player_camera::{self, OrbitCamera},
+    movement::Movement,
+    orbit_camera::{self, OrbitCamera},
     world3d::{Character, CharacterInfo, Player, PlayerCamera},
 };
 
@@ -104,7 +103,7 @@ fn setup_hero(
             },
             animations: ModelAnimations::from_vec(&hero_animations.1),
         },
-        MovementNew::default(),
+        Movement::default(),
         StatsBundle::default(),
         Character(CharacterInfo {
             name: String::from("Hero"),
@@ -119,7 +118,7 @@ fn setup_goblin(
 ) {
     commands.spawn((
         Goblin,
-        Walking(WalkDirection::Forward),
+        Movement::from(0., 0.),
         AnimatedModelBundle {
             animation_state: AnimationState(AnimationStates::Idle),
             animations: ModelAnimations::from_vec(&goblin_animations.1),
@@ -195,13 +194,13 @@ pub fn setup_player_camera(mut commands: Commands, player_query: Query<Entity, W
 pub struct AnimatedModelsPlugin;
 impl Plugin for AnimatedModelsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<player_camera::OrbitCameraEvents>()
+        app.add_event::<orbit_camera::OrbitCameraEvents>()
             .add_systems(OnEnter(AppState::LoadingGame), load_assets)
             .add_systems(
                 Update,
                 (
                     check_assets_ready.run_if(in_state(AppState::LoadingGame)),
-                    (player_camera::follow_target,).run_if(in_state(AppState::Game)),
+                    (orbit_camera::follow_subject,).run_if(in_state(AppState::Game)),
                 ),
             )
             .add_systems(

@@ -107,6 +107,7 @@ pub fn update_nameplates_position(
             Ok(character_transform) => {
                 match camera.world_to_viewport(camera_transform, character_transform.translation) {
                     Some(coords) => {
+                        
                         style.left = Val::Px(coords.x - 80.);
                         style.top = Val::Px(coords.y - 80.);
                     }

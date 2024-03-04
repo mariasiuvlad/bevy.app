@@ -1,6 +1,6 @@
 use bevy::{prelude::*, scene::SceneBundle};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum AnimationStates {
     Idle,
     Walk,

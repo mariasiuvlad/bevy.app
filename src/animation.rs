@@ -5,8 +5,7 @@ use bevy::prelude::*;
 use crate::{
     animated_bundle::{AnimationState, AnimationStates, ModelAnimations},
     app_state::AppState,
-    combat::{attack::AttackWindUp, status_effect::sprint::SprintEffect, DamageTakenEvent},
-    movement::{WalkDirection, Walking},
+    combat::{attack::AttackWindUp, DamageTakenEvent},
 };
 
 pub fn start_animation(
@@ -44,43 +43,6 @@ pub fn handle_animation_change(
     }
 }
 
-pub fn start_walking_animation(
-    mut commands: Commands,
-    walking_query: Query<(Entity, &Walking, Option<&SprintEffect>), Added<Walking>>,
-) {
-    for (walking_entity, walking, sprint) in walking_query.iter() {
-        let animation_state = match walking.0 {
-            WalkDirection::Backward => AnimationStates::Backpedal,
-            WalkDirection::Forward => match sprint {
-                None => AnimationStates::Walk,
-                Some(_) => AnimationStates::Run,
-            },
-        };
-
-        commands
-            .entity(walking_entity)
-            .insert(AnimationState(animation_state));
-    }
-}
-
-fn stop_walking_animation(
-    mut commands: Commands,
-    mut stopped_walking: RemovedComponents<Walking>,
-    mut stopped_attacking: RemovedComponents<AttackWindUp>,
-) {
-    for e in stopped_walking.read() {
-        commands
-            .entity(e)
-            .insert(AnimationState(AnimationStates::Idle));
-    }
-
-    for e in stopped_attacking.read() {
-        commands
-            .entity(e)
-            .insert(AnimationState(AnimationStates::Idle));
-    }
-}
-
 fn start_attack_animation(
     mut commands: Commands,
     attacking_player_query: Query<Entity, Added<AttackWindUp>>,
@@ -100,31 +62,6 @@ fn start_flinch_animation(mut commands: Commands, mut ev_damage: EventReader<Dam
     }
 }
 
-fn start_sprint_animation(
-    mut commands: Commands,
-    sprinting_player_query: Query<Entity, (With<Walking>, Added<SprintEffect>)>,
-) {
-    for e in sprinting_player_query.iter() {
-        commands
-            .entity(e)
-            .insert(AnimationState(AnimationStates::Run));
-    }
-}
-
-fn stop_sprint_animation(
-    mut commands: Commands,
-    mut stopped_sprinting: RemovedComponents<SprintEffect>,
-    is_walking: Query<Entity, With<Walking>>,
-) {
-    for e in stopped_sprinting.read() {
-        if let Ok(e) = is_walking.get(e) {
-            commands
-                .entity(e)
-                .insert(AnimationState(AnimationStates::Walk));
-        }
-    }
-}
-
 pub struct CharacterAnimationPlugin;
 
 impl Plugin for CharacterAnimationPlugin {
@@ -134,12 +71,8 @@ impl Plugin for CharacterAnimationPlugin {
             (
                 start_animation,
                 handle_animation_change,
-                start_walking_animation,
-                stop_walking_animation,
                 start_attack_animation,
                 start_flinch_animation,
-                start_sprint_animation,
-                stop_sprint_animation,
             )
                 .run_if(in_state(AppState::Game)),
         );

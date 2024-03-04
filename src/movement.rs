@@ -1,85 +1,112 @@
-use std::ops::Div;
-
 use bevy::prelude::*;
 
-use crate::{app_state::AppState, combat::combat_stats::Stats};
+use crate::{
+    animated_bundle::{AnimationState, AnimationStates},
+    app_state::AppState,
+    combat::{combat_stats::Stats, status_effect::sprint::SprintEffect},
+    get_single,
+    world3d::{Player, PlayerCamera},
+};
 
-const TURN_RATE: f32 = 2.0;
+#[derive(Component)]
+pub struct Movement(Vec2);
 
-pub enum WalkDirection {
-    Forward,
-    Backward,
+impl Default for Movement {
+    fn default() -> Self {
+        Self(Vec2::ZERO)
+    }
 }
 
-pub enum StrafeDirection {
-    Left,
-    Right,
+impl Movement {
+    pub fn from(x: f32, y: f32) -> Self {
+        Self(Vec2::new(x, y))
+    }
+    pub fn x(&self) -> f32 {
+        self.0.x
+    }
+    pub fn z(&self) -> f32 {
+        self.0.y
+    }
 }
 
-pub enum TurnDirection {
-    Left,
-    Right,
-}
-
-#[derive(Component)]
-pub struct Strafing(pub StrafeDirection);
-
-#[derive(Component)]
-pub struct Walking(pub WalkDirection);
-
-#[derive(Component)]
-pub struct Turning(pub TurnDirection);
-
-#[derive(Component)]
-pub struct Running;
-
-pub struct MovementPlugin;
-
-pub fn handle_walking(
-    time: Res<Time>,
-    mut walking_query: Query<(&mut Transform, &Stats, &Walking), With<Walking>>,
+fn player_input_to_movement(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut move_q: Query<&mut Movement, With<Player>>,
 ) {
-    for (mut transform, stats, walking) in walking_query.iter_mut() {
-        let delta = transform.forward() * stats.computed_move_speed() * time.delta_seconds();
+    for mut movement in move_q.iter_mut() {
+        let mut v = Vec2::ZERO;
 
-        transform.translation += match walking.0 {
-            WalkDirection::Forward => -delta,
-            WalkDirection::Backward => delta.div(2.),
+        if keys.pressed(KeyCode::KeyW) {
+            v.x += 1.;
+        }
+        if keys.pressed(KeyCode::KeyA) {
+            v.y -= 1.;
+        }
+        if keys.pressed(KeyCode::KeyS) {
+            v.x -= 1.;
+        }
+        if keys.pressed(KeyCode::KeyD) {
+            v.y += 1.;
+        }
+
+        movement.0 = v.normalize_or_zero();
+    }
+}
+
+fn apply_movement(
+    time: Res<Time>,
+    mut move_q: Query<(&mut Transform, &Movement, &Stats), Without<PlayerCamera>>,
+    camera_q: Query<&Transform, With<PlayerCamera>>,
+) {
+    let camera_t = get_single!(camera_q);
+    for (mut t, movement, stats) in move_q.iter_mut() {
+        let mut look_to: Vec3 =
+            camera_t.forward() * movement.x() + camera_t.local_x() * movement.z();
+        look_to.y = 0.;
+
+        // movement
+        t.translation +=
+            look_to.normalize_or_zero() * time.delta_seconds() * stats.computed_move_speed();
+
+        // rotation
+        if look_to != Vec3::ZERO && look_to != t.forward().normalize() {
+            look_to.y = 0.;
+
+            t.rotation = t.rotation.slerp(
+                t.looking_to(-look_to.normalize(), Vec3::Y).rotation,
+                0.1 * time.delta_seconds() * 80.,
+            );
         }
     }
 }
 
-pub fn handle_strafing(
-    time: Res<Time>,
-    mut strafing_query: Query<(&mut Transform, &Stats, &Strafing)>,
-) {
-    for (mut transform, stats, strafing) in strafing_query.iter_mut() {
-        let delta = transform.left() * stats.computed_move_speed() * time.delta_seconds();
-
-        transform.translation += match strafing.0 {
-            StrafeDirection::Left => delta,
-            StrafeDirection::Right => -delta,
-        }
-    }
-}
-
-pub fn handle_turning(time: Res<Time>, mut turning_query: Query<(&mut Transform, &Turning)>) {
-    for (mut transform, strafing) in turning_query.iter_mut() {
-        let delta = time.delta_seconds() * TURN_RATE;
-        let rotation = match strafing.0 {
-            TurnDirection::Left => delta,
-            TurnDirection::Right => -delta,
+fn movement_animations(mut move_q: Query<(&Movement, Option<&SprintEffect>, &mut AnimationState)>) {
+    for (movement, sprint_effect, mut animation_state) in move_q.iter_mut() {
+        let movement_animation = match sprint_effect {
+            Some(_) => AnimationStates::Run,
+            None => AnimationStates::Walk,
         };
-
-        transform.rotate_y(rotation);
+        if (movement.x() != 0. || movement.z() != 0.) && animation_state.0 != movement_animation {
+            *animation_state = AnimationState(movement_animation)
+        }
+        if movement.x() == 0. && movement.z() == 0. && animation_state.0 == movement_animation {
+            *animation_state = AnimationState(AnimationStates::Idle)
+        }
     }
 }
 
-impl Plugin for MovementPlugin {
+pub struct MovementNewPlugin;
+
+impl Plugin for MovementNewPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (handle_walking, handle_strafing, handle_turning).run_if(in_state(AppState::Game)),
+            (
+                player_input_to_movement,
+                (apply_movement).after(player_input_to_movement),
+                movement_animations,
+            )
+                .run_if(in_state(AppState::Game)),
         );
     }
 }

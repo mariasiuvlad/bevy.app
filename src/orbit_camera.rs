@@ -19,7 +19,7 @@ pub struct OrbitCamera {
     pub center: Vec3,
     pub rotate_sensitivity: f32,
     pub zoom_sensitivity: f32,
-    pub target: Option<Entity>,
+    pub subject: Option<Entity>,
 }
 
 impl Default for OrbitCamera {
@@ -30,19 +30,19 @@ impl Default for OrbitCamera {
             pitch_range: 0.5..=1.5,
             distance: 5.0,
             center: Vec3::ZERO,
-            rotate_sensitivity: 1.0,
+            rotate_sensitivity: 0.5,
             zoom_sensitivity: 0.8,
-            target: None,
+            subject: None,
         }
     }
 }
 
 impl OrbitCamera {
-    pub fn new(dist: f32, center: Vec3, target: Option<Entity>) -> OrbitCamera {
+    pub fn new(dist: f32, center: Vec3, subject: Option<Entity>) -> OrbitCamera {
         OrbitCamera {
             distance: dist,
             center,
-            target,
+            subject,
             ..Self::default()
         }
     }
@@ -106,15 +106,15 @@ pub fn update_transform(
     }
 }
 
-pub fn follow_target(
+pub fn follow_subject(
     transform_query: Query<&Transform>,
     mut camera_query: Query<&mut OrbitCamera>,
 ) {
     for mut camera in camera_query.iter_mut() {
-        match camera.target {
+        match camera.subject {
             Some(e) => {
                 if let Ok(transform) = transform_query.get(e) {
-                    camera.center = camera.center.lerp(transform.translation + Vec3::Y, 0.02);
+                    camera.center = camera.center.lerp(transform.translation + Vec3::Y, 0.1);
                 }
             }
             None => return,
