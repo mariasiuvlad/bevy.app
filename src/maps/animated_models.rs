@@ -33,7 +33,7 @@ pub struct Animations<T: Component>(T, pub Vec<Handle<AnimationClip>>);
 pub struct AssetsLoading(pub Vec<UntypedHandle>);
 
 fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let hero_model = asset_server.load("models/hero.glb#Scene0");
+    let hero_model = asset_server.load("models/hero2.glb#Scene0");
     let goblin_model = asset_server.load("models/goblin.glb#Scene0");
 
     commands.insert_resource(HeroModel(hero_model.clone()));
@@ -54,12 +54,12 @@ fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(Animations(
         Hero,
         vec![
-            asset_server.load("models/hero.glb#Animation0"),
-            asset_server.load("models/hero.glb#Animation1"),
-            asset_server.load("models/hero.glb#Animation2"),
-            asset_server.load("models/hero.glb#Animation3"),
-            asset_server.load("models/hero.glb#Animation4"),
-            asset_server.load("models/hero.glb#Animation5"),
+            asset_server.load("models/hero2.glb#Animation0"),
+            asset_server.load("models/hero2.glb#Animation1"),
+            asset_server.load("models/hero2.glb#Animation2"),
+            asset_server.load("models/hero2.glb#Animation3"),
+            asset_server.load("models/hero2.glb#Animation4"),
+            asset_server.load("models/hero2.glb#Animation5"),
         ],
     ));
 
@@ -118,7 +118,7 @@ fn setup_goblin(
 ) {
     commands.spawn((
         Goblin,
-        Movement::from(0., 0.),
+        Movement::from(0.0, 0.0),
         AnimatedModelBundle {
             animation_state: AnimationState(AnimationStates::Idle),
             animations: ModelAnimations::from_vec(&goblin_animations.1),

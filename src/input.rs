@@ -9,7 +9,7 @@ use crate::{
         status_effect::sprint::SprintEffect,
     },
     get_single,
-    world3d::{Character, Player, PlayerTarget},
+    world3d::{Character, CharacterTarget, Player},
 };
 
 #[derive(Event)]
@@ -18,8 +18,8 @@ struct TargetNextEnemyEvent;
 fn handle_target_next_enemy(
     mut commands: Commands,
     mut ev_target_next_enemy: EventReader<TargetNextEnemyEvent>,
-    character_query: Query<(Entity, &Character), (Without<PlayerTarget>, Without<Player>)>,
-    character_query_target: Query<(Entity, &Character), With<PlayerTarget>>,
+    character_query: Query<(Entity, &Character), (Without<CharacterTarget>, Without<Player>)>,
+    character_query_target: Query<(Entity, &Character), With<CharacterTarget>>,
 ) {
     for _ in ev_target_next_enemy.read() {
         let mut new_target: Option<Entity> = None;
@@ -30,7 +30,7 @@ fn handle_target_next_enemy(
         for (e, _c) in character_query_target.iter() {
             match commands.get_entity(e) {
                 Some(mut ec) => {
-                    ec.remove::<PlayerTarget>();
+                    ec.remove::<CharacterTarget>();
                 }
                 None => {}
             }
@@ -39,7 +39,7 @@ fn handle_target_next_enemy(
         match new_target {
             Some(target) => match commands.get_entity(target) {
                 Some(mut entity) => {
-                    entity.insert(PlayerTarget);
+                    entity.insert(CharacterTarget);
                 }
                 None => {}
             },
@@ -53,7 +53,7 @@ fn keyboard_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut ev_target_next_enemy: EventWriter<TargetNextEnemyEvent>,
     player_query: Query<Entity, With<Player>>,
-    target_query: Query<Entity, With<PlayerTarget>>,
+    target_query: Query<Entity, With<CharacterTarget>>,
 ) {
     // Skills
     if keys.just_pressed(KeyCode::Space) {
@@ -65,7 +65,7 @@ fn keyboard_input(
     // Targeting
     if keys.just_pressed(KeyCode::Escape) {
         let e = get_single!(target_query);
-        commands.entity(e).remove::<PlayerTarget>();
+        commands.entity(e).remove::<CharacterTarget>();
     }
     if keys.just_pressed(KeyCode::Tab) {
         ev_target_next_enemy.send(TargetNextEnemyEvent);
@@ -76,7 +76,7 @@ fn attack_input(
     mut commands: Commands,
     mouse: Res<ButtonInput<MouseButton>>,
     player_query: Query<Entity, (With<Player>, Without<AttackCooldown>)>,
-    player_target_query: Query<Entity, With<PlayerTarget>>,
+    player_target_query: Query<Entity, With<CharacterTarget>>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
         let player_target_handle = get_single!(player_target_query);

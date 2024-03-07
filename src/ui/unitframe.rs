@@ -2,7 +2,7 @@ use crate::{
     app_state::AppState,
     combat::combat_stats::Stats,
     main_menu::UiFont,
-    world3d::{Character, Player, PlayerTarget},
+    world3d::{Character, CharacterTarget, Player},
 };
 use bevy::prelude::*;
 
@@ -44,18 +44,18 @@ pub fn setup_unitframes(mut commands: Commands, ui_font: Res<UiFont>) {
                     });
             });
         parent
-            .spawn((UiUnitFrameRoot(PlayerTarget), unit_frame()))
+            .spawn((UiUnitFrameRoot(CharacterTarget), unit_frame()))
             .with_children(|parent| {
-                parent.spawn((UiName(PlayerTarget), text(ui_font.0.clone())));
+                parent.spawn((UiName(CharacterTarget), text(ui_font.0.clone())));
                 parent
-                    .spawn((UiHealthPercentage(PlayerTarget), bar(Color::DARK_GREEN)))
+                    .spawn((UiHealthPercentage(CharacterTarget), bar(Color::DARK_GREEN)))
                     .with_children(|parent| {
-                        parent.spawn((UiHealthValue(PlayerTarget), text(ui_font.0.clone())));
+                        parent.spawn((UiHealthValue(CharacterTarget), text(ui_font.0.clone())));
                     });
                 parent
-                    .spawn((UiEnergyPercentage(PlayerTarget), bar(Color::BLUE)))
+                    .spawn((UiEnergyPercentage(CharacterTarget), bar(Color::BLUE)))
                     .with_children(|parent| {
-                        parent.spawn((UiEnergyValue(PlayerTarget), text(ui_font.0.clone())));
+                        parent.spawn((UiEnergyValue(CharacterTarget), text(ui_font.0.clone())));
                     });
             });
     });
@@ -151,12 +151,12 @@ impl Plugin for PlayerTargetNameplatePlugin {
         app.add_systems(
             Update,
             (
-                update_health_value::<PlayerTarget>,
-                update_energy_value::<PlayerTarget>,
-                update_health_percentage::<PlayerTarget>,
-                update_energy_percentage::<PlayerTarget>,
-                update_name::<PlayerTarget>,
-                toggle_ui::<PlayerTarget>,
+                update_health_value::<CharacterTarget>,
+                update_energy_value::<CharacterTarget>,
+                update_health_percentage::<CharacterTarget>,
+                update_energy_percentage::<CharacterTarget>,
+                update_name::<CharacterTarget>,
+                toggle_ui::<CharacterTarget>,
             )
                 .run_if(in_state(AppState::Game)),
         );

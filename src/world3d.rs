@@ -8,7 +8,10 @@ use bevy::prelude::*;
 pub struct Player;
 
 #[derive(Component)]
-pub struct PlayerTarget;
+pub struct CharacterTarget;
+
+#[derive(Component)]
+pub struct Target(Entity);
 
 #[derive(Component)]
 pub struct Character(pub CharacterInfo);

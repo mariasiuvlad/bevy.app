@@ -6,7 +6,7 @@ use crate::{
     get_single,
     main_menu::UiFont,
     ui_style::nameplate_text_style,
-    world3d::{Character, Player, PlayerCamera, PlayerTarget},
+    world3d::{Character, CharacterTarget, Player, PlayerCamera},
 };
 #[derive(Component)]
 pub struct CharacterUI(pub Entity);
@@ -107,9 +107,8 @@ pub fn update_nameplates_position(
             Ok(character_transform) => {
                 match camera.world_to_viewport(camera_transform, character_transform.translation) {
                     Some(coords) => {
-                        
                         style.left = Val::Px(coords.x - 80.);
-                        style.top = Val::Px(coords.y - 80.);
+                        style.top = Val::Px(coords.y);
                     }
                     None => {}
                 }
@@ -123,7 +122,7 @@ pub fn update_nameplates_position(
 
 pub fn update_target_indicator(
     mut player_target_ui_query: Query<(&mut Style, &PlayerTargetUI)>,
-    player_target_query: Query<Entity, With<PlayerTarget>>,
+    player_target_query: Query<Entity, With<CharacterTarget>>,
 ) {
     for (mut style, player_target) in player_target_ui_query.iter_mut() {
         match player_target_query.get(player_target.0) {
@@ -139,7 +138,7 @@ pub fn update_target_indicator(
 
 pub fn toggle_nameplates_based_on_distance(
     mut character_ui_query: Query<(&mut Style, &CharacterUI)>,
-    character_query: Query<(&Transform, Option<&PlayerTarget>), With<Character>>,
+    character_query: Query<(&Transform, Option<&CharacterTarget>), With<Character>>,
     player_query: Query<&Transform, With<Player>>,
 ) {
     let player_transform = get_single!(player_query);

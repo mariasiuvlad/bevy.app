@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
-use crate::app_state::AppState;
+use crate::{app_state::AppState, world3d::CharacterTarget};
 
 #[derive(Event)]
 pub enum OrbitCameraEvents {
@@ -96,13 +96,29 @@ pub fn handle_events(
 
 pub fn update_transform(
     mut query: Query<(&OrbitCamera, &mut Transform), (Changed<OrbitCamera>, With<Camera>)>,
+    target_q: Query<&Transform, (With<CharacterTarget>, Without<Camera>)>,
 ) {
     for (camera, mut t) in query.iter_mut() {
-        let rot =
-            Quat::from_axis_angle(Vec3::Y, camera.x) * Quat::from_axis_angle(-Vec3::X, camera.y);
+        let (angle, target) = match target_q.get_single() {
+            Ok(target_transform) => (
+                Transform::from_translation(camera.center)
+                    .looking_at(target_transform.translation, Vec3::Y)
+                    .forward()
+                    * -1.,
+                target_transform.translation,
+            ),
+            Err(_) => (
+                Quat::from_axis_angle(Vec3::Y, camera.x)
+                    * Quat::from_axis_angle(-Vec3::X, camera.y)
+                    * Vec3::Y,
+                camera.center,
+            ),
+        };
 
-        t.translation = (rot * Vec3::Y) * camera.distance + camera.center;
-        t.look_at(camera.center, Vec3::Y);
+        t.translation = angle * camera.distance + camera.center + Vec3::Y;
+
+        // @TODO might want to interpolate?
+        t.look_at(target, Vec3::Y);
     }
 }
 
