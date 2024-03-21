@@ -5,11 +5,12 @@ use crate::{app_state::AppState, world3d::Character};
 use self::{
     attack::{AttackEvent, AttackPlugin},
     combat_stats::Stats,
-    status_effect::{sprint::SprintPlugin, thorns::ThornsPlugin},
+    status_effect::sprint::SprintPlugin,
 };
 
 pub mod attack;
 pub mod combat_stats;
+pub mod hitbox_bundle;
 pub mod status_effect;
 
 #[derive(Event, Debug)]
@@ -59,12 +60,8 @@ fn log_combat(
 ) {
     for attack_event in ev_attack.read() {
         let source = character_query.get(attack_event.source).unwrap();
-        let target = character_query.get(attack_event.target).unwrap();
 
-        info!(
-            "{} attacks {} for {}",
-            source.0.name, target.0.name, attack_event.attack
-        );
+        info!("{} attacks for {}", source.0.name, attack_event.attack);
     }
 
     for damage_event in ev_damage.read() {
@@ -79,7 +76,7 @@ impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DamageTakenEvent>()
             .add_event::<CharacterDeathEvent>()
-            .add_plugins((SprintPlugin, ThornsPlugin, AttackPlugin))
+            .add_plugins((SprintPlugin, AttackPlugin))
             .add_systems(
                 Update,
                 (

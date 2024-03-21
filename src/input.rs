@@ -56,7 +56,7 @@ fn keyboard_input(
     target_query: Query<Entity, With<CharacterTarget>>,
 ) {
     // Skills
-    if keys.just_pressed(KeyCode::Space) {
+    if keys.just_pressed(KeyCode::ShiftLeft) {
         let e = get_single!(player_query);
         commands.entity(e).insert(SprintEffect {
             timer: Timer::from_seconds(5., TimerMode::Once),
@@ -76,15 +76,13 @@ fn attack_input(
     mut commands: Commands,
     mouse: Res<ButtonInput<MouseButton>>,
     player_query: Query<Entity, (With<Player>, Without<AttackCooldown>)>,
-    player_target_query: Query<Entity, With<CharacterTarget>>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
-        let player_target_handle = get_single!(player_target_query);
         let player_handle = get_single!(player_query);
         commands.entity(player_handle).insert(AttackWindUp {
-            ev: AttackEvent::new(player_handle, player_target_handle, 5),
-            total_duration: Duration::from_millis(1000),
-            timer: Timer::from_seconds(1., TimerMode::Once),
+            ev: AttackEvent::new(player_handle, 2),
+            total_duration: Duration::from_millis(900),
+            timer: Timer::from_seconds(0.9, TimerMode::Once),
         });
     }
 }

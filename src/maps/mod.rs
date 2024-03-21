@@ -1,1 +1,1 @@
-pub mod animated_models;
+pub mod physics_platformer;

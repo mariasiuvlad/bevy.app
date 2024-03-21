@@ -21,13 +21,12 @@ pub struct OrbitCamera {
     pub zoom_sensitivity: f32,
     pub subject: Option<Entity>,
 }
-
 impl Default for OrbitCamera {
     fn default() -> Self {
         OrbitCamera {
             x: 0.0,
             y: std::f32::consts::FRAC_PI_2,
-            pitch_range: 0.5..=1.5,
+            pitch_range: 0.5..=1.7,
             distance: 5.0,
             center: Vec3::ZERO,
             rotate_sensitivity: 0.5,
@@ -36,7 +35,6 @@ impl Default for OrbitCamera {
         }
     }
 }
-
 impl OrbitCamera {
     pub fn new(dist: f32, center: Vec3, subject: Option<Entity>) -> OrbitCamera {
         OrbitCamera {
@@ -115,10 +113,14 @@ pub fn update_transform(
             ),
         };
 
-        t.translation = angle * camera.distance + camera.center + Vec3::Y;
+        t.translation = t
+            .translation
+            .lerp(angle * camera.distance + camera.center + Vec3::Y, 0.1);
 
-        // @TODO might want to interpolate?
-        t.look_at(target, Vec3::Y);
+        t.rotation = t
+            .rotation
+            .slerp(t.looking_at(target, Vec3::Y).rotation, 0.5);
+        // t.look_at(target, Vec3::Y);
     }
 }
 
@@ -148,6 +150,7 @@ impl Plugin for OrbitCameraPlugin {
                 emit_keyboard_events,
                 handle_events,
                 update_transform,
+                follow_subject,
             )
                 .run_if(in_state(AppState::Game)),
         );

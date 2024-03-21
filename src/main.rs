@@ -1,49 +1,38 @@
-mod animated_bundle;
-mod animation;
 mod app_state;
+mod character_controller;
 mod combat;
 mod components;
 mod input;
 mod main_menu;
 mod maps;
-mod movement;
+mod mouse;
 mod nameplate;
-mod orbit_camera;
+mod plugins;
 mod startup;
 mod texture;
 mod ui;
 mod ui_style;
 mod world3d;
 
-use app_state::AppState;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use bevy::window::PresentMode;
+use bevy_rapier3d::prelude::*;
+
+use app_state::AppState;
+use character_controller::CharacterControllerPlugin;
 use combat::CombatPlugin;
 use main_menu::MainMenuPlugin;
-use movement::MovementNewPlugin;
 use nameplate::NameplatePlugin;
-use orbit_camera::OrbitCameraPlugin;
 use startup::StartupPlugin;
 use ui::fps::FpsPlugin;
 use ui::UiPlugin;
 use world3d::World3dPlugin;
-mod mouse;
 
 #[macro_export]
 macro_rules! get_single {
     ($q:expr) => {
         match $q.get_single() {
-            Ok(m) => m,
-            _ => return,
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! get_single_mut {
-    ($q:expr) => {
-        match $q.get_single_mut() {
             Ok(m) => m,
             _ => return,
         }
@@ -62,7 +51,7 @@ fn main() {
                         title: "I am a window!".into(),
                         name: Some("bevy.app".into()),
                         // resolution: (500., 300.).into(),
-                        mode: bevy::window::WindowMode::BorderlessFullscreen,
+                        // mode: bevy::window::WindowMode::BorderlessFullscreen,
                         present_mode: PresentMode::AutoVsync,
                         // // Tells wasm not to override default event handling, like F5, Ctrl+R etc.
                         // prevent_default_event_handling: false,
@@ -78,15 +67,17 @@ fn main() {
                     }),
                     ..default()
                 }),
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            RapierDebugRenderPlugin::default(),
             FpsPlugin,
             StartupPlugin,
             MainMenuPlugin,
             CombatPlugin,
-            MovementNewPlugin,
             UiPlugin,
             NameplatePlugin,
             World3dPlugin,
-            OrbitCameraPlugin,
+            plugins::orbit_camera::OrbitCameraPlugin,
+            CharacterControllerPlugin,
         ))
         .run();
 }

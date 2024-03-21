@@ -42,7 +42,7 @@ fn handle_button_press(
     for ev in ev_button_pressed.read() {
         match ev.0 {
             MainMenuButton::Start => {
-                app_state.set(AppState::LoadingGame);
+                app_state.set(AppState::Game);
                 info!("Start game");
             }
             MainMenuButton::Quit => {

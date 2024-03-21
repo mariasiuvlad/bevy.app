@@ -31,7 +31,7 @@ impl Default for StatsBundle {
 }
 
 impl Stats {
-    pub fn computed_move_speed(&self) -> f32 {
+    pub fn _computed_move_speed(&self) -> f32 {
         self.move_speed * self.move_speed_modifier
     }
     pub fn health_percentage(&self) -> f32 {
