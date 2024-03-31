@@ -1,5 +1,3 @@
-use crate::input::InputPlugin;
-use crate::maps::physics_platformer::PhysicsPlatformerPlugin;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -20,11 +18,3 @@ pub struct CharacterInfo {
 
 #[derive(Component)]
 pub struct PlayerCamera;
-
-pub struct World3dPlugin;
-
-impl Plugin for World3dPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins((PhysicsPlatformerPlugin, InputPlugin));
-    }
-}

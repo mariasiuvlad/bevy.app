@@ -30,6 +30,7 @@ pub fn setup_nameplates(
                     style: Style {
                         height: Val::Auto,
                         width: Val::Px(160.),
+                        margin: UiRect::left(Val::Px(-80.)),
                         position_type: PositionType::Absolute,
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
@@ -107,7 +108,7 @@ pub fn update_nameplates_position(
             Ok(character_transform) => {
                 match camera.world_to_viewport(camera_transform, character_transform.translation) {
                     Some(coords) => {
-                        style.left = Val::Px(coords.x - 80.);
+                        style.left = Val::Px(coords.x);
                         style.top = Val::Px(coords.y);
                     }
                     None => {}

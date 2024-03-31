@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "process",
+			"command": "cargo",
+			"args": [
+				"run"
+			],
+			"label": "rust: cargo run",
+			"problemMatcher": []
+		}
+	]
+}

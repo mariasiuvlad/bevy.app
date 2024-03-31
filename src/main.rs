@@ -22,12 +22,13 @@ use bevy_rapier3d::prelude::*;
 use app_state::AppState;
 use character_controller::CharacterControllerPlugin;
 use combat::CombatPlugin;
+use input::InputPlugin;
 use main_menu::MainMenuPlugin;
+use maps::physics_platformer::PhysicsPlatformerPlugin;
 use nameplate::NameplatePlugin;
 use startup::StartupPlugin;
 use ui::fps::FpsPlugin;
 use ui::UiPlugin;
-use world3d::World3dPlugin;
 
 #[macro_export]
 macro_rules! get_single {
@@ -75,9 +76,10 @@ fn main() {
             CombatPlugin,
             UiPlugin,
             NameplatePlugin,
-            World3dPlugin,
             plugins::orbit_camera::OrbitCameraPlugin,
             CharacterControllerPlugin,
+            PhysicsPlatformerPlugin,
+            InputPlugin,
         ))
         .run();
 }
