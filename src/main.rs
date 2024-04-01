@@ -21,7 +21,6 @@ mod maps;
 mod modules;
 mod mouse;
 mod startup;
-mod texture;
 mod ui;
 mod window_config;
 mod world3d;
