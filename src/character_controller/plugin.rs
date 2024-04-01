@@ -14,7 +14,7 @@ impl Plugin for CharacterControllerPlugin {
             (
                 systems::cast_shape_manager,
                 systems::rotation_controller,
-                systems::input_controller,
+                systems::keyboard_input_controller,
                 systems::tick_timers,
             ),
         );

@@ -9,8 +9,8 @@ use crate::{
     combat::combat_stats::StatsBundle,
     components::{cleanup, meta::Name},
     get_single,
+    modules::orbit_camera,
     mouse::{cursor_grab, cursor_ungrab},
-    plugins::orbit_camera,
     world3d::{Character, CharacterInfo, Player, PlayerCamera},
 };
 

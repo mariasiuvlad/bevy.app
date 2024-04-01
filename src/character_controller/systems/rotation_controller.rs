@@ -1,5 +1,5 @@
 use crate::character_controller::CharacterController;
-use crate::plugins::orbit_camera::OrbitCamera;
+use crate::modules::orbit_camera::OrbitCamera;
 use bevy::prelude::*;
 
 pub fn rotation_controller(

@@ -120,7 +120,6 @@ pub fn update_transform(
         t.rotation = t
             .rotation
             .slerp(t.looking_at(target, Vec3::Y).rotation, 0.5);
-        // t.look_at(target, Vec3::Y);
     }
 }
 

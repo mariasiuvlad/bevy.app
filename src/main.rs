@@ -5,9 +5,9 @@ mod components;
 mod input;
 mod main_menu;
 mod maps;
+mod modules;
 mod mouse;
 mod nameplate;
-mod plugins;
 mod startup;
 mod texture;
 mod ui;
@@ -22,7 +22,7 @@ use bevy_rapier3d::prelude::*;
 use app_state::AppState;
 use character_controller::CharacterControllerPlugin;
 use combat::CombatPlugin;
-use input::InputPlugin;
+use input::PlayerKeyboardInputPlugin;
 use main_menu::MainMenuPlugin;
 use maps::physics_platformer::PhysicsPlatformerPlugin;
 use nameplate::NameplatePlugin;
@@ -76,10 +76,10 @@ fn main() {
             CombatPlugin,
             UiPlugin,
             NameplatePlugin,
-            plugins::orbit_camera::OrbitCameraPlugin,
+            modules::orbit_camera::OrbitCameraPlugin,
             CharacterControllerPlugin,
             PhysicsPlatformerPlugin,
-            InputPlugin,
+            PlayerKeyboardInputPlugin,
         ))
         .run();
 }

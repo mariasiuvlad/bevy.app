@@ -87,9 +87,9 @@ fn attack_input(
     }
 }
 
-pub struct InputPlugin;
+pub struct PlayerKeyboardInputPlugin;
 
-impl Plugin for InputPlugin {
+impl Plugin for PlayerKeyboardInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TargetNextEnemyEvent>().add_systems(
             Update,

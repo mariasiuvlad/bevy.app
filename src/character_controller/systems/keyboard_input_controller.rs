@@ -3,7 +3,7 @@ use crate::world3d::Player;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-pub fn input_controller(
+pub fn keyboard_input_controller(
     keys: Res<ButtonInput<KeyCode>>,
     mut q: Query<(&mut CharacterController, &mut ExternalImpulse), With<Player>>,
 ) {
