@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::ui_style::player_ui_text_style;
+use super::style::player_ui_text_style;
 
 pub fn container() -> NodeBundle {
     NodeBundle {

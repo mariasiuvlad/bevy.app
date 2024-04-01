@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::components::cleanup::{cleanup, CleanupMainMenuClose};
-use crate::ui_style::{default_button_style, default_menu_style, default_text_style};
+use crate::ui::style::{default_button_style, default_menu_style, default_text_style};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 

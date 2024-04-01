@@ -5,9 +5,11 @@ use crate::{
     get_single,
     main_menu::UiFont,
     modules::combat::combat_stats::Stats,
-    ui_style::nameplate_text_style,
     world3d::{Player, PlayerCamera, PlayerTarget, Targetable},
 };
+
+use super::style;
+
 #[derive(Component)]
 pub struct CharacterUI(pub Entity);
 
@@ -45,12 +47,12 @@ pub fn setup_nameplates(
                     PlayerTargetUI(character_handle),
                     TextBundle::from_sections([TextSection::new(
                         String::from(">Target<"),
-                        nameplate_text_style(ui_font.0.clone()),
+                        style::nameplate_text_style(ui_font.0.clone()),
                     )]),
                 ));
                 parent.spawn(TextBundle::from_sections([TextSection::new(
                     name,
-                    nameplate_text_style(ui_font.0.clone()),
+                    style::nameplate_text_style(ui_font.0.clone()),
                 )]));
                 parent
                     .spawn(NodeBundle {

@@ -1,14 +1,16 @@
 use crate::app_state::AppState;
 use bevy::prelude::*;
+use nameplate::NameplatePlugin;
 
 use self::unitframe::{setup_unitframes, PlayerTargetUnitframePlugin, PlayerUnitframePlugin};
 
 pub mod common;
 pub mod fps;
 mod nameplate;
+pub mod style;
 mod unitframe;
 
-use nameplate::NameplatePlugin;
+pub use fps::FpsPlugin;
 
 pub struct UiPlugin;
 
