@@ -5,13 +5,14 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     app_state::AppState,
-    character_controller::CharacterController,
-    combat::combat_stats::StatsBundle,
-    components::{cleanup, meta::Name},
+    components::cleanup,
     get_single,
-    modules::orbit_camera,
-    mouse::{cursor_grab, cursor_ungrab},
-    world3d::{Character, CharacterInfo, Player, PlayerCamera},
+    modules::{
+        character_controller::CharacterController, combat::combat_stats::StatsBundle,
+        orbit_camera::OrbitCamera,
+    },
+    mouse::{cursor_grab, cursor_release},
+    world3d::{Player, PlayerCamera, Targetable},
 };
 
 #[derive(Resource)]
@@ -40,8 +41,9 @@ fn setup_hero(
 
     commands
         .spawn((
-            Name::new("Hero"),
             Player,
+            Name::new("Hero"),
+            Targetable,
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED,
             Collider::capsule_y(0.5, 1.),
@@ -53,9 +55,6 @@ fn setup_hero(
             AdditionalMassProperties::Mass(1.0),
             TransformBundle::from(Transform::from_xyz(0.0, 2.0, 0.0)),
             StatsBundle::default(),
-            Character(CharacterInfo {
-                name: String::from("Hero"),
-            }),
         ))
         .with_children(|parent| {
             parent.spawn(PbrBundle {
@@ -83,6 +82,7 @@ fn setup_npc(
     commands
         .spawn((
             Name::new("Eve"),
+            Targetable,
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED,
             Collider::capsule_y(0.2, 1.),
@@ -94,9 +94,6 @@ fn setup_npc(
             AdditionalMassProperties::Mass(1.0),
             TransformBundle::from(Transform::from_xyz(-5.0, 2.0, 0.0)),
             StatsBundle::default(),
-            Character(CharacterInfo {
-                name: String::from("Eve"),
-            }),
         ))
         .with_children(|parent| {
             parent.spawn(PbrBundle {
@@ -159,9 +156,9 @@ pub fn setup_player_camera(mut commands: Commands, player_query: Query<Entity, W
 
     commands.spawn((
         Name::new("Player Camera"),
-        cleanup::LevelUnload,
+        cleanup::CleanupLevelUnload,
         PlayerCamera,
-        orbit_camera::OrbitCamera::new(10., Vec3::ZERO, Some(player_entity)),
+        OrbitCamera::new(10., Vec3::ZERO, Some(player_entity)),
         Camera3dBundle {
             transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
             camera: Camera {
@@ -188,6 +185,6 @@ impl Plugin for PhysicsPlatformerPlugin {
                     setup_player_camera.after(setup_hero),
                 ),
             )
-            .add_systems(OnExit(AppState::Game), cursor_ungrab);
+            .add_systems(OnExit(AppState::Game), cursor_release);
     }
 }

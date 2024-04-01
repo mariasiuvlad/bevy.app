@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{app_state::AppState, combat::combat_stats::Stats, world3d::Character};
+use crate::{app_state::AppState, modules::combat::combat_stats::Stats, world3d::Targetable};
 
 #[derive(Component, Debug)]
 pub struct SprintEffect {
@@ -31,7 +31,7 @@ pub fn handle_status_effects(
 
 pub fn handle_status_effects_removals(
     mut removals: RemovedComponents<SprintEffect>,
-    mut character_query: Query<&mut Stats, With<Character>>,
+    mut character_query: Query<&mut Stats, With<Targetable>>,
 ) {
     for entity in removals.read() {
         if let Ok(mut stats) = character_query.get_mut(entity) {

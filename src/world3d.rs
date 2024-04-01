@@ -4,17 +4,13 @@ use bevy::prelude::*;
 pub struct Player;
 
 #[derive(Component)]
-pub struct CharacterTarget;
+pub struct PlayerTarget;
 
 #[derive(Component)]
 pub struct Target(Entity);
 
 #[derive(Component)]
-pub struct Character(pub CharacterInfo);
-
-pub struct CharacterInfo {
-    pub name: String,
-}
+pub struct Targetable;
 
 #[derive(Component)]
 pub struct PlayerCamera;

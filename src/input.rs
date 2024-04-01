@@ -4,12 +4,12 @@ use bevy::prelude::*;
 
 use crate::{
     app_state::AppState,
-    combat::{
+    get_single,
+    modules::combat::{
         attack::{AttackCooldown, AttackEvent, AttackWindUp},
         status_effect::sprint::SprintEffect,
     },
-    get_single,
-    world3d::{Character, CharacterTarget, Player},
+    world3d::{Player, PlayerTarget, Targetable},
 };
 
 #[derive(Event)]
@@ -18,8 +18,8 @@ struct TargetNextEnemyEvent;
 fn handle_target_next_enemy(
     mut commands: Commands,
     mut ev_target_next_enemy: EventReader<TargetNextEnemyEvent>,
-    character_query: Query<(Entity, &Character), (Without<CharacterTarget>, Without<Player>)>,
-    character_query_target: Query<(Entity, &Character), With<CharacterTarget>>,
+    character_query: Query<(Entity, &Targetable), (Without<PlayerTarget>, Without<Player>)>,
+    character_query_target: Query<(Entity, &Targetable), With<PlayerTarget>>,
 ) {
     for _ in ev_target_next_enemy.read() {
         let mut new_target: Option<Entity> = None;
@@ -30,7 +30,7 @@ fn handle_target_next_enemy(
         for (e, _c) in character_query_target.iter() {
             match commands.get_entity(e) {
                 Some(mut ec) => {
-                    ec.remove::<CharacterTarget>();
+                    ec.remove::<PlayerTarget>();
                 }
                 None => {}
             }
@@ -39,7 +39,7 @@ fn handle_target_next_enemy(
         match new_target {
             Some(target) => match commands.get_entity(target) {
                 Some(mut entity) => {
-                    entity.insert(CharacterTarget);
+                    entity.insert(PlayerTarget);
                 }
                 None => {}
             },
@@ -53,7 +53,7 @@ fn keyboard_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut ev_target_next_enemy: EventWriter<TargetNextEnemyEvent>,
     player_query: Query<Entity, With<Player>>,
-    target_query: Query<Entity, With<CharacterTarget>>,
+    target_query: Query<Entity, With<PlayerTarget>>,
 ) {
     // Skills
     if keys.just_pressed(KeyCode::ShiftLeft) {
@@ -65,7 +65,7 @@ fn keyboard_input(
     // Targeting
     if keys.just_pressed(KeyCode::Escape) {
         let e = get_single!(target_query);
-        commands.entity(e).remove::<CharacterTarget>();
+        commands.entity(e).remove::<PlayerTarget>();
     }
     if keys.just_pressed(KeyCode::Tab) {
         ev_target_next_enemy.send(TargetNextEnemyEvent);

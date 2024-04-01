@@ -1,8 +1,8 @@
 use crate::{
     app_state::AppState,
-    combat::combat_stats::Stats,
     main_menu::UiFont,
-    world3d::{Character, CharacterTarget, Player},
+    modules::combat::combat_stats::Stats,
+    world3d::{Player, PlayerTarget},
 };
 use bevy::prelude::*;
 
@@ -44,18 +44,18 @@ pub fn setup_unitframes(mut commands: Commands, ui_font: Res<UiFont>) {
                     });
             });
         parent
-            .spawn((UiUnitFrameRoot(CharacterTarget), unit_frame()))
+            .spawn((UiUnitFrameRoot(PlayerTarget), unit_frame()))
             .with_children(|parent| {
-                parent.spawn((UiName(CharacterTarget), text(ui_font.0.clone())));
+                parent.spawn((UiName(PlayerTarget), text(ui_font.0.clone())));
                 parent
-                    .spawn((UiHealthPercentage(CharacterTarget), bar(Color::DARK_GREEN)))
+                    .spawn((UiHealthPercentage(PlayerTarget), bar(Color::DARK_GREEN)))
                     .with_children(|parent| {
-                        parent.spawn((UiHealthValue(CharacterTarget), text(ui_font.0.clone())));
+                        parent.spawn((UiHealthValue(PlayerTarget), text(ui_font.0.clone())));
                     });
                 parent
-                    .spawn((UiEnergyPercentage(CharacterTarget), bar(Color::BLUE)))
+                    .spawn((UiEnergyPercentage(PlayerTarget), bar(Color::BLUE)))
                     .with_children(|parent| {
-                        parent.spawn((UiEnergyValue(CharacterTarget), text(ui_font.0.clone())));
+                        parent.spawn((UiEnergyValue(PlayerTarget), text(ui_font.0.clone())));
                     });
             });
     });
@@ -84,12 +84,12 @@ pub fn update_energy_value<T: Component>(
 }
 
 pub fn update_name<T: Component>(
-    character_query: Query<&Character, With<T>>,
+    name_query: Query<&Name, With<T>>,
     mut name_ui_query: Query<&mut Text, With<UiName<T>>>,
 ) {
-    if let Ok(character) = character_query.get_single() {
+    if let Ok(name) = name_query.get_single() {
         if let Ok(mut name_text) = name_ui_query.get_single_mut() {
-            name_text.sections[0].value = format!("{}", character.0.name);
+            name_text.sections[0].value = format!("{}", name);
         }
     }
 }
@@ -151,12 +151,12 @@ impl Plugin for PlayerTargetNameplatePlugin {
         app.add_systems(
             Update,
             (
-                update_health_value::<CharacterTarget>,
-                update_energy_value::<CharacterTarget>,
-                update_health_percentage::<CharacterTarget>,
-                update_energy_percentage::<CharacterTarget>,
-                update_name::<CharacterTarget>,
-                toggle_ui::<CharacterTarget>,
+                update_health_value::<PlayerTarget>,
+                update_energy_value::<PlayerTarget>,
+                update_health_percentage::<PlayerTarget>,
+                update_energy_percentage::<PlayerTarget>,
+                update_name::<PlayerTarget>,
+                toggle_ui::<PlayerTarget>,
             )
                 .run_if(in_state(AppState::Game)),
         );

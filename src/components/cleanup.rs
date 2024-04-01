@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct LevelUnload;
+pub struct CleanupLevelUnload;
 
 #[derive(Component)]
-pub struct MainMenuClose;
+pub struct CleanupMainMenuClose;
 
 pub fn cleanup<T: Component>(mut commands: Commands, mut query: Query<Entity, With<T>>) {
     for e in query.iter_mut() {

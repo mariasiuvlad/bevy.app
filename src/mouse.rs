@@ -18,7 +18,7 @@ pub fn cursor_grab(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
     primary_window.cursor.visible = false;
 }
 
-pub fn cursor_ungrab(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
+pub fn cursor_release(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
     let mut primary_window = q_windows.single_mut();
 
     primary_window.cursor.grab_mode = CursorGrabMode::None;

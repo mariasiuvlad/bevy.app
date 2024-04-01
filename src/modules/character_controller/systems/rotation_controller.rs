@@ -1,4 +1,4 @@
-use crate::character_controller::CharacterController;
+use crate::modules::character_controller::CharacterController;
 use crate::modules::orbit_camera::OrbitCamera;
 use bevy::prelude::*;
 

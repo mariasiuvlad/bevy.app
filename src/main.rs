@@ -1,6 +1,4 @@
 mod app_state;
-mod character_controller;
-mod combat;
 mod components;
 mod input;
 mod main_menu;
@@ -20,11 +18,15 @@ use bevy::window::PresentMode;
 use bevy_rapier3d::prelude::*;
 
 use app_state::AppState;
-use character_controller::CharacterControllerPlugin;
-use combat::CombatPlugin;
 use input::PlayerKeyboardInputPlugin;
 use main_menu::MainMenuPlugin;
 use maps::physics_platformer::PhysicsPlatformerPlugin;
+
+use modules::{
+    character_controller::CharacterControllerPlugin, combat::CombatPlugin,
+    orbit_camera::OrbitCameraPlugin,
+};
+
 use nameplate::NameplatePlugin;
 use startup::StartupPlugin;
 use ui::fps::FpsPlugin;
@@ -76,7 +78,7 @@ fn main() {
             CombatPlugin,
             UiPlugin,
             NameplatePlugin,
-            modules::orbit_camera::OrbitCameraPlugin,
+            OrbitCameraPlugin,
             CharacterControllerPlugin,
             PhysicsPlatformerPlugin,
             PlayerKeyboardInputPlugin,

@@ -2,11 +2,11 @@ use bevy::prelude::*;
 
 use crate::{
     app_state::AppState,
-    combat::combat_stats::Stats,
     get_single,
     main_menu::UiFont,
+    modules::combat::combat_stats::Stats,
     ui_style::nameplate_text_style,
-    world3d::{Character, CharacterTarget, Player, PlayerCamera},
+    world3d::{Player, PlayerCamera, PlayerTarget, Targetable},
 };
 #[derive(Component)]
 pub struct CharacterUI(pub Entity);
@@ -20,9 +20,10 @@ pub struct HealthBarUI(pub Entity);
 pub fn setup_nameplates(
     mut commands: Commands,
     ui_font: Res<UiFont>,
-    character_query: Query<(Entity, &Character), Added<Character>>,
+    targetable_query: Query<(Entity, &Name), Added<Targetable>>,
 ) {
-    for (character_handle, character) in character_query.iter() {
+    for (character_handle, name) in targetable_query.iter() {
+        info!("nameplate target handle {:?}", character_handle);
         let nameplate_handle = commands
             .spawn((
                 CharacterUI(character_handle),
@@ -48,7 +49,7 @@ pub fn setup_nameplates(
                     )]),
                 ));
                 parent.spawn(TextBundle::from_sections([TextSection::new(
-                    character.0.name.clone(),
+                    name,
                     nameplate_text_style(ui_font.0.clone()),
                 )]));
                 parent
@@ -87,7 +88,7 @@ pub fn setup_nameplates(
 
 pub fn update_nameplates_health(
     mut health_bar_ui_query: Query<(&mut Style, &HealthBarUI)>,
-    character_query: Query<&Stats, With<Character>>,
+    character_query: Query<&Stats, With<Targetable>>,
 ) {
     for (mut style, health_bar_ui) in health_bar_ui_query.iter_mut() {
         if let Ok(stats) = character_query.get(health_bar_ui.0) {
@@ -99,7 +100,7 @@ pub fn update_nameplates_health(
 pub fn update_nameplates_position(
     mut commands: Commands,
     mut character_ui_query: Query<(Entity, &mut Style, &CharacterUI)>,
-    character_query: Query<&Transform, With<Character>>,
+    character_query: Query<&Transform, With<Targetable>>,
     player_camera_query: Query<(&Camera, &GlobalTransform), With<PlayerCamera>>,
 ) {
     let (camera, camera_transform) = get_single!(player_camera_query);
@@ -123,7 +124,7 @@ pub fn update_nameplates_position(
 
 pub fn update_target_indicator(
     mut player_target_ui_query: Query<(&mut Style, &PlayerTargetUI)>,
-    player_target_query: Query<Entity, With<CharacterTarget>>,
+    player_target_query: Query<Entity, With<PlayerTarget>>,
 ) {
     for (mut style, player_target) in player_target_ui_query.iter_mut() {
         match player_target_query.get(player_target.0) {
@@ -139,7 +140,7 @@ pub fn update_target_indicator(
 
 pub fn toggle_nameplates_based_on_distance(
     mut character_ui_query: Query<(&mut Style, &CharacterUI)>,
-    character_query: Query<(&Transform, Option<&CharacterTarget>), With<Character>>,
+    character_query: Query<(&Transform, Option<&PlayerTarget>), With<Targetable>>,
     player_query: Query<&Transform, With<Player>>,
 ) {
     let player_transform = get_single!(player_query);

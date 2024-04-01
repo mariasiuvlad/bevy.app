@@ -1,4 +1,4 @@
-use crate::character_controller::CharacterController;
+use super::super::CharacterController;
 use crate::world3d::Player;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;

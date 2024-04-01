@@ -1,5 +1,5 @@
 use crate::app_state::AppState;
-use crate::components::cleanup::{cleanup, MainMenuClose};
+use crate::components::cleanup::{cleanup, CleanupMainMenuClose};
 use crate::ui_style::{default_button_style, default_menu_style, default_text_style};
 use bevy::app::AppExit;
 use bevy::prelude::*;
@@ -8,22 +8,18 @@ const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
-#[derive(Event, Debug)]
-pub struct ButtonPressed(pub MainMenuButton);
+#[derive(Event, Debug, Clone, Copy)]
+pub enum ButtonPressedEvent {
+    StartGame,
+    Quit,
+    Options,
+}
 
 #[derive(Default, Resource)]
 pub struct UiFont(pub Handle<Font>);
 
-#[derive(Component, Debug, PartialEq, Clone, Copy)]
-pub enum MainMenuButton {
-    Start,
-    Options,
-    Quit,
-}
-#[derive(Bundle)]
-struct ButtonTarget {
-    target: MainMenuButton,
-}
+#[derive(Component, Debug)]
+struct ButtonAction(ButtonPressedEvent);
 
 fn default_button_bundle() -> ButtonBundle {
     ButtonBundle {
@@ -34,45 +30,24 @@ fn default_button_bundle() -> ButtonBundle {
     }
 }
 
-fn handle_button_press(
-    mut app_state: ResMut<NextState<AppState>>,
-    mut exit: EventWriter<AppExit>,
-    mut ev_button_pressed: EventReader<ButtonPressed>,
-) {
-    for ev in ev_button_pressed.read() {
-        match ev.0 {
-            MainMenuButton::Start => {
-                app_state.set(AppState::Game);
-                info!("Start game");
-            }
-            MainMenuButton::Quit => {
-                exit.send(AppExit);
-                info!("Quit game");
-            }
-            MainMenuButton::Options => {
-                info!("Options");
-            }
-        }
-    }
-}
-
-fn button_press(
+fn button_press_controller(
     mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
-    mut ev_button_pressed: EventWriter<ButtonPressed>,
-    button_target_query: Query<&MainMenuButton>,
+    mut ev_button_pressed: EventWriter<ButtonPressedEvent>,
+    button_target_query: Query<&ButtonAction>,
 ) {
     for (interaction, children) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                let target: &MainMenuButton = button_target_query.get(children[0]).unwrap();
-                ev_button_pressed.send(ButtonPressed(*target));
+                if let Ok(target) = button_target_query.get(children[0]) {
+                    ev_button_pressed.send(target.0);
+                }
             }
             _ => {}
         }
     }
 }
 
-fn button_feedback(
+fn button_feedback_controller(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>),
@@ -96,13 +71,33 @@ fn button_feedback(
     }
 }
 
+fn handle_button_pressed_event(
+    mut app_state: ResMut<NextState<AppState>>,
+    mut exit: EventWriter<AppExit>,
+    mut ev_button_pressed: EventReader<ButtonPressedEvent>,
+) {
+    for ev in ev_button_pressed.read() {
+        info!("{:?}", ev);
+        match ev {
+            &ButtonPressedEvent::StartGame => {
+                app_state.set(AppState::Game);
+            }
+            &ButtonPressedEvent::Quit => {
+                exit.send(AppExit);
+            }
+            &ButtonPressedEvent::Options => {
+                todo!()
+            }
+        }
+    }
+}
+
 fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
     commands
         .spawn((
-            MainMenuClose,
+            CleanupMainMenuClose,
             NodeBundle {
                 style: default_menu_style(),
-                // background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
         ))
@@ -111,9 +106,7 @@ fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
                 .spawn(default_button_bundle())
                 .with_children(|parent| {
                     parent.spawn((
-                        ButtonTarget {
-                            target: MainMenuButton::Start,
-                        },
+                        ButtonAction(ButtonPressedEvent::StartGame),
                         TextBundle::from_section("Start Game", default_text_style(font.0.clone())),
                     ));
                 });
@@ -121,9 +114,7 @@ fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
                 .spawn(default_button_bundle())
                 .with_children(|parent| {
                     parent.spawn((
-                        ButtonTarget {
-                            target: MainMenuButton::Options,
-                        },
+                        ButtonAction(ButtonPressedEvent::Options),
                         TextBundle::from_section("Options", default_text_style(font.0.clone())),
                     ));
                 });
@@ -131,9 +122,7 @@ fn setup_ui(mut commands: Commands, font: Res<UiFont>) {
                 .spawn(default_button_bundle())
                 .with_children(|parent| {
                     parent.spawn((
-                        ButtonTarget {
-                            target: MainMenuButton::Quit,
-                        },
+                        ButtonAction(ButtonPressedEvent::Quit),
                         TextBundle::from_section("Quit", default_text_style(font.0.clone())),
                     ));
                 });
@@ -145,9 +134,16 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UiFont>()
-            .add_event::<ButtonPressed>()
+            .add_event::<ButtonPressedEvent>()
             .add_systems(OnEnter(AppState::MainMenu), setup_ui)
-            .add_systems(OnExit(AppState::MainMenu), cleanup::<MainMenuClose>)
-            .add_systems(Update, (button_press, button_feedback, handle_button_press));
+            .add_systems(OnExit(AppState::MainMenu), cleanup::<CleanupMainMenuClose>)
+            .add_systems(
+                Update,
+                (
+                    button_press_controller,
+                    button_feedback_controller,
+                    handle_button_pressed_event,
+                ),
+            );
     }
 }
