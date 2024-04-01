@@ -55,9 +55,9 @@ pub fn setup_nameplates(
                 parent
                     .spawn(NodeBundle {
                         style: Style {
-                            height: Val::Px(12.),
+                            height: Val::Px(8.),
                             width: Val::Percent(100.),
-                            border: UiRect::all(Val::Px(2.)),
+                            border: UiRect::all(Val::Px(1.)),
                             ..default()
                         },
                         border_color: BorderColor(Color::WHITE),

@@ -128,8 +128,8 @@ pub fn toggle_ui<T: Component>(
     }
 }
 
-pub struct PlayerNameplatePlugin;
-impl Plugin for PlayerNameplatePlugin {
+pub struct PlayerUnitframePlugin;
+impl Plugin for PlayerUnitframePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
@@ -145,8 +145,8 @@ impl Plugin for PlayerNameplatePlugin {
     }
 }
 
-pub struct PlayerTargetNameplatePlugin;
-impl Plugin for PlayerTargetNameplatePlugin {
+pub struct PlayerTargetUnitframePlugin;
+impl Plugin for PlayerTargetUnitframePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,

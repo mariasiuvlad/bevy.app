@@ -5,7 +5,6 @@ mod main_menu;
 mod maps;
 mod modules;
 mod mouse;
-mod nameplate;
 mod startup;
 mod texture;
 mod ui;
@@ -27,7 +26,6 @@ use modules::{
     orbit_camera::OrbitCameraPlugin,
 };
 
-use nameplate::NameplatePlugin;
 use startup::StartupPlugin;
 use ui::fps::FpsPlugin;
 use ui::UiPlugin;
@@ -77,7 +75,6 @@ fn main() {
             MainMenuPlugin,
             CombatPlugin,
             UiPlugin,
-            NameplatePlugin,
             OrbitCameraPlugin,
             CharacterControllerPlugin,
             PhysicsPlatformerPlugin,
