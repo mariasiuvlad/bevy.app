@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
-use std::time::Duration;
 
 const GRAVITY: f32 = -9.81;
 
@@ -32,7 +31,7 @@ impl Default for FloatingConfig {
     fn default() -> Self {
         Self {
             ride_spring: SpringConfig::default(),
-            ride_height: 0.5,
+            ride_height: 1.0,
         }
     }
 }
@@ -40,7 +39,6 @@ impl Default for FloatingConfig {
 #[derive(Component, Debug)]
 pub struct CharacterController {
     pub transform: Transform,
-    pub jump_timer: Timer,
     pub floating_config: FloatingConfig,
     pub cast_shape_result: Option<(Entity, Toi)>,
 }
@@ -50,21 +48,16 @@ impl Default for CharacterController {
         Self {
             transform: Transform::default(),
             floating_config: FloatingConfig::default(),
-            jump_timer: Timer::new(Duration::from_millis(150), TimerMode::Once),
             cast_shape_result: None,
         }
     }
 }
 
 impl CharacterController {
-    pub fn is_jumping(&self) -> bool {
-        !self.jump_timer.finished()
-    }
-
     pub fn is_grounded(&self) -> bool {
         match self.cast_shape_result {
             None => false,
-            Some((_, toi)) => toi.toi <= self.floating_config.ride_height + 0.3,
+            Some((_, toi)) => toi.toi <= self.floating_config.ride_height,
         }
     }
 

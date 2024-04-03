@@ -7,11 +7,11 @@ use input::PlayerKeyboardInputPlugin;
 use main_menu::MainMenuPlugin;
 use maps::physics_platformer::PhysicsPlatformerPlugin;
 use modules::{
-    character_controller::CharacterControllerPlugin, combat::CombatPlugin,
-    orbit_camera::OrbitCameraPlugin,
+    actions::ActionsPlugin, brain::BrainPlugin, character_controller::CharacterControllerPlugin,
+    combat::CombatPlugin, orbit_camera::OrbitCameraPlugin,
 };
 use startup::StartupPlugin;
-use ui::{FpsPlugin, UiPlugin};
+use ui::UiPlugin;
 
 mod app_state;
 mod components;
@@ -45,9 +45,10 @@ fn main() {
                 .set(window_config::get_window_config()),
             RapierPhysicsPlugin::<NoUserData>::default(),
             RapierDebugRenderPlugin::default(),
-            FpsPlugin,
             StartupPlugin,
             MainMenuPlugin,
+            ActionsPlugin,
+            BrainPlugin,
             CombatPlugin,
             UiPlugin,
             OrbitCameraPlugin,

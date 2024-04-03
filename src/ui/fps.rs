@@ -7,7 +7,6 @@ use bevy::{
 pub struct UiFps;
 
 use crate::{app_state::AppState, main_menu::UiFont};
-pub struct FpsPlugin;
 
 pub fn setup(mut commands: Commands, font: Res<UiFont>) {
     commands.spawn(Camera2dBundle {
@@ -56,6 +55,7 @@ pub fn update_fps(
     }
 }
 
+pub struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(FrameTimeDiagnosticsPlugin::default())

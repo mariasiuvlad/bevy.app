@@ -8,8 +8,8 @@ use crate::{
     components::cleanup,
     get_single,
     modules::{
-        character_controller::CharacterController, combat::combat_stats::StatsBundle,
-        orbit_camera::OrbitCamera,
+        actions::jump::JumpAction, character_controller::CharacterController,
+        combat::combat_stats::StatsBundle, orbit_camera::OrbitCamera,
     },
     mouse::{cursor_grab, cursor_release},
     world3d::{Player, PlayerCamera, Targetable},
@@ -48,12 +48,13 @@ fn setup_hero(
             LockedAxes::ROTATION_LOCKED,
             Collider::capsule_y(0.5, 1.),
             CharacterController::default(),
+            JumpAction(Vec3::Y * 5.),
             Velocity::default(),
             ExternalImpulse::default(),
             ExternalForce::default(),
             ColliderMassProperties::Density(0.0),
             AdditionalMassProperties::Mass(1.0),
-            TransformBundle::from(Transform::from_xyz(0.0, 2.0, 0.0)),
+            TransformBundle::from(Transform::from_xyz(0.0, 5.0, 0.0)),
             StatsBundle::default(),
         ))
         .with_children(|parent| {
@@ -71,7 +72,7 @@ fn setup_npc(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mesh = meshes.add(Capsule3d::new(1., 0.2));
+    let mesh = meshes.add(Capsule3d::new(1., 0.5));
     let material: Handle<StandardMaterial> = materials.add(StandardMaterial {
         base_color: Color::hex("#EBBAB9").unwrap().into(),
         metallic: 1.0,
@@ -85,14 +86,15 @@ fn setup_npc(
             Targetable,
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED,
-            Collider::capsule_y(0.2, 1.),
+            Collider::capsule_y(0.5, 1.),
             CharacterController::default(),
             Velocity::default(),
+            JumpAction(Vec3::Y * 2.),
             ExternalImpulse::default(),
             ExternalForce::default(),
             ColliderMassProperties::Density(0.0),
             AdditionalMassProperties::Mass(1.0),
-            TransformBundle::from(Transform::from_xyz(-5.0, 2.0, 0.0)),
+            TransformBundle::from(Transform::from_xyz(-5.0, 5.0, 0.0)),
             StatsBundle::default(),
         ))
         .with_children(|parent| {
