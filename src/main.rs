@@ -7,8 +7,8 @@ use input::PlayerKeyboardInputPlugin;
 use main_menu::MainMenuPlugin;
 use maps::physics_platformer::PhysicsPlatformerPlugin;
 use modules::{
-    actions::ActionsPlugin, brain::BrainPlugin, character_controller::CharacterControllerPlugin,
-    combat::CombatPlugin, orbit_camera::OrbitCameraPlugin,
+    brain::BrainPlugin, character_controller::CharacterControllerPlugin, combat::CombatPlugin,
+    orbit_camera::OrbitCameraPlugin,
 };
 use startup::StartupPlugin;
 use ui::UiPlugin;
@@ -47,7 +47,6 @@ fn main() {
             RapierDebugRenderPlugin::default(),
             StartupPlugin,
             MainMenuPlugin,
-            ActionsPlugin,
             BrainPlugin,
             CombatPlugin,
             UiPlugin,
