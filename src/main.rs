@@ -1,5 +1,6 @@
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
 use bevy_rapier3d::prelude::*;
 
 use app_state::AppState;
@@ -45,6 +46,7 @@ fn main() {
                 .set(window_config::get_window_config()),
             RapierPhysicsPlugin::<NoUserData>::default(),
             RapierDebugRenderPlugin::default(),
+            EguiPlugin,
             StartupPlugin,
             MainMenuPlugin,
             BrainPlugin,

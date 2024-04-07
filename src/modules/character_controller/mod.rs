@@ -1,11 +1,14 @@
 use bevy::prelude::*;
-use bevy_rapier3d::dynamics::{ExternalForce, ReadMassProperties, Velocity};
+use bevy_rapier3d::{
+    dynamics::{ExternalForce, ReadMassProperties, Velocity},
+    plugin::RapierConfiguration,
+};
 
 use crate::world3d::{Player, PlayerCamera};
 
 use self::{
     jump::{ActionType, ActionTypeContext, JumpActionType},
-    motion::{apply_motion_system, Motion},
+    motion::{apply_motion_system, debug_motion_system, Motion},
     motion_type::{BoxableMotionType, DynamicMotionType, MotionType},
     proximity_sensor::{cast_ray_system, ProximitySensor},
     walk::MotionTypeContext,
@@ -116,6 +119,7 @@ pub fn keyboard_input_system(
 
 pub fn controller_system(
     time: Res<Time>,
+    rapier_config: Res<RapierConfiguration>,
     mut query: Query<(
         &Transform,
         &Velocity,
@@ -124,6 +128,7 @@ pub fn controller_system(
         &mut motion::Motion,
     )>,
 ) {
+    rapier_config.gravity;
     for (transform, velocity, mut ctr, sensor, mut motion) in query.iter_mut() {
         let ctr = ctr.as_mut();
         let motion = motion.as_mut();
@@ -136,6 +141,7 @@ pub fn controller_system(
                     proximity_sensor_output: sensor.output,
                     transform: *transform,
                     velocity: *velocity,
+                    gravity: rapier_config.gravity,
                 },
                 motion,
             );
@@ -144,6 +150,7 @@ pub fn controller_system(
                 action_type.apply(
                     ActionTypeContext {
                         frame_duration: time.delta_seconds(),
+                        gravity: rapier_config.gravity,
                         proximity_sensor_output: sensor.output,
                         transform: *transform,
                         velocity: *velocity,
@@ -170,6 +177,7 @@ impl Plugin for CharacterControllerPlugin {
             Update,
             (
                 apply_motion_system,
+                debug_motion_system,
                 controller_system,
                 keyboard_input_system,
                 cast_ray_system,

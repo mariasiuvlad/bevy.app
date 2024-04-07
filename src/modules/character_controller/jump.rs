@@ -15,6 +15,7 @@ pub struct ActionTypeContext<'a> {
     pub transform: Transform,
     pub velocity: Velocity,
     pub motion_type: &'a dyn DynamicMotionType,
+    pub gravity: Vec3,
 }
 
 impl<'a> ActionTypeContext<'a> {
@@ -30,6 +31,7 @@ impl<'a> ActionTypeContext<'a> {
             velocity: self.velocity,
             proximity_sensor_output: self.proximity_sensor_output,
             transform: self.transform,
+            gravity: self.gravity,
         }
     }
 }
@@ -65,9 +67,11 @@ impl ActionType for JumpActionType {
             0.
         };
 
+        let accel = 20. - ctx.gravity.y - ctx.velocity.linvel.y;
+
         let vel_change = VelChange {
             boost: Vec3::Y * -spring_force,
-            accel: Vec3::Y * 20.,
+            accel: Vec3::Y * accel,
         };
 
         motion.linvel += vel_change;

@@ -28,6 +28,7 @@ pub struct MotionTypeContext {
     pub proximity_sensor_output: Option<ProximitySensorOutput>,
     pub transform: Transform,
     pub velocity: Velocity,
+    pub gravity: Vec3,
 }
 
 #[derive(Debug, Default)]
@@ -65,12 +66,18 @@ impl WalkMotionType {
             Some(output) => match output.distance > self.floating_height + 0.1 {
                 true => 0.,
                 false => {
-                    info!("{:?}", output.distance);
                     let deviation = self.floating_height - output.distance;
                     (deviation * self.spring_config.strength)
                         - (ctx.velocity.linvel.y * self.spring_config.damper)
                 }
             },
+        }
+    }
+
+    fn can_walk(&self, ctx: MotionTypeContext) -> bool {
+        match ctx.proximity_sensor_output {
+            None => false,
+            Some(_) => true,
         }
     }
 
@@ -106,9 +113,21 @@ impl MotionType for WalkMotionType {
         };
 
         let spring_force = self.calculate_spring_force(ctx);
+        let vertical_change = VelChange::boost(self.up * spring_force);
+        let horizontal_change = if self.can_walk(ctx) {
+            target_velocity
+        } else {
+            VelChange::ZERO
+        };
+        motion.linvel = horizontal_change + vertical_change;
 
-        motion.linvel = target_velocity + VelChange::boost(self.up * spring_force);
-        motion.angvel = VelChange::boost(self.get_torque(ctx) * Vec3::from(self.up));
+        let angular_change = if self.can_walk(ctx) {
+            VelChange::boost(self.get_torque(ctx) * Vec3::from(self.up))
+        } else {
+            VelChange::boost(-ctx.velocity.angvel)
+            // VelChange::ZERO
+        };
+        motion.angvel = angular_change;
 
         // update state
         state.spring_force = spring_force;
