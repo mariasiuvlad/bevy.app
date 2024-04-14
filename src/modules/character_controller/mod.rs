@@ -1,16 +1,26 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    utils::{Entry, HashMap},
+};
 use bevy_rapier3d::{
-    dynamics::{ExternalForce, ReadMassProperties, Velocity},
+    dynamics::{ExternalForce, ExternalImpulse, ReadMassProperties, Velocity},
     plugin::RapierConfiguration,
 };
 
-use crate::world3d::{Player, PlayerCamera};
+use crate::{
+    modules::character_controller::traits::action_type::ActionLifecycleDirective,
+    world3d::{Player, PlayerCamera},
+};
 
 use self::{
-    jump::{ActionType, ActionTypeContext, JumpActionType},
+    jump::JumpActionType,
     motion::{apply_motion_system, debug_motion_system, Motion},
     motion_type::{BoxableMotionType, DynamicMotionType, MotionType},
     proximity_sensor::{cast_ray_system, ProximitySensor},
+    traits::action_type::{
+        ActionInitiationDirective, ActionLifecycle, ActionType, ActionTypeContext,
+        BoxableActionType, DynamicActionType,
+    },
     walk::MotionTypeContext,
 };
 
@@ -18,6 +28,7 @@ mod jump;
 mod motion;
 mod motion_type;
 mod proximity_sensor;
+mod traits;
 mod utils;
 mod walk;
 
@@ -31,10 +42,16 @@ pub struct CharacterControllerBundle {
     proximity_sensor: ProximitySensor,
 }
 
+struct FedEntry {
+    fed_this_frame: bool,
+}
+
 #[derive(Default, Component)]
 pub struct CharacterController {
     current_motion_type: Option<(&'static str, Box<dyn DynamicMotionType>)>,
-    current_action: Option<JumpActionType>,
+    current_action: Option<(&'static str, Box<dyn DynamicActionType>)>,
+    contender_action: Option<(&'static str, Box<dyn DynamicActionType>)>,
+    actions_being_fed: HashMap<&'static str, FedEntry>,
 }
 
 impl CharacterController {
@@ -61,8 +78,36 @@ impl CharacterController {
         self
     }
 
-    pub fn action_type(&mut self, a: Option<JumpActionType>) {
-        self.current_action = a;
+    pub fn action_type<A: ActionType>(&mut self, a: A) {
+        self.named_action(A::NAME, a);
+    }
+
+    pub fn named_action<A: ActionType>(&mut self, name: &'static str, a: A) {
+        match self.actions_being_fed.entry(name) {
+            Entry::Occupied(mut entry) => {
+                entry.get_mut().fed_this_frame = true;
+                if let Some((current_name, current_action)) = self.current_action.as_mut() {
+                    if *current_name == name {
+                        let Some(current_action) = current_action
+                            .as_mut_any()
+                            .downcast_mut::<BoxableActionType<A>>()
+                        else {
+                            panic!("Multiple action types registered with same name {name:?}");
+                        };
+                        current_action.input = a;
+                    } else {
+                    }
+                } else {
+                    // self.current_action = Some((name, Box::new(BoxableActionType::new(a))));
+                    self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
+                }
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(FedEntry {
+                    fed_this_frame: true,
+                });
+            }
+        };
     }
 }
 
@@ -102,17 +147,13 @@ pub fn keyboard_input_system(
         };
 
         ctr.motion_type(WalkMotionType {
-            velocity: velocity.normalize_or_zero() * 10.,
+            velocity: velocity.normalize_or_zero() * 15.,
             facing,
             ..default()
         });
 
         if keyboard.pressed(KeyCode::Space) {
-            ctr.action_type(Some(JumpActionType { velocity: Vec3::Y }));
-        }
-
-        if keyboard.just_released(KeyCode::Space) {
-            ctr.action_type(None);
+            ctr.action_type(JumpActionType { velocity: Vec3::Y });
         }
     }
 }
@@ -146,8 +187,39 @@ pub fn controller_system(
                 motion,
             );
 
-            if let Some(action_type) = &mut ctr.current_action {
-                action_type.apply(
+            let has_valid_contender = if let Some((_, contender_action)) = &ctr.contender_action {
+                let initiation_decision = contender_action.initiation_decision(ActionTypeContext {
+                    frame_duration: time.delta_seconds(),
+                    gravity: rapier_config.gravity,
+                    proximity_sensor_output: sensor.output,
+                    transform: *transform,
+                    velocity: *velocity,
+                    motion_type,
+                });
+
+                // info!("initiation_decision {:?}", initiation_decision);
+
+                match initiation_decision {
+                    ActionInitiationDirective::Allow => true,
+                    ActionInitiationDirective::Reject | ActionInitiationDirective::Delay => false,
+                }
+            } else {
+                false
+            };
+
+            if let Some((action_name, action_type)) = &mut ctr.current_action {
+                let lifecycle = if ctr
+                    .actions_being_fed
+                    .get(action_name)
+                    .map(|fed_entry| fed_entry.fed_this_frame)
+                    .unwrap_or(false)
+                {
+                    ActionLifecycle::StillFed
+                } else {
+                    ActionLifecycle::NoLongerFed
+                };
+
+                let directive = action_type.apply(
                     ActionTypeContext {
                         frame_duration: time.delta_seconds(),
                         gravity: rapier_config.gravity,
@@ -156,8 +228,49 @@ pub fn controller_system(
                         velocity: *velocity,
                         motion_type,
                     },
+                    lifecycle,
                     motion,
                 );
+
+                info!("directive {:?}", directive);
+
+                if directive == ActionLifecycleDirective::Finished {
+                    ctr.current_action = None
+                }
+            } else if has_valid_contender {
+                let (contender_name, mut contender_action) = ctr
+                    .contender_action
+                    .take()
+                    .expect("has_valid_contender can only be true if contender_action is Some");
+                contender_action.apply(
+                    ActionTypeContext {
+                        frame_duration: time.delta_seconds(),
+                        gravity: rapier_config.gravity,
+                        proximity_sensor_output: sensor.output,
+                        transform: *transform,
+                        velocity: *velocity,
+                        motion_type,
+                    },
+                    ActionLifecycle::Started,
+                    motion,
+                );
+                ctr.current_action = Some((contender_name, contender_action));
+            }
+        }
+
+        // Cycle actions_being_fed
+        ctr.actions_being_fed.retain(|_, fed_entry| {
+            if fed_entry.fed_this_frame {
+                fed_entry.fed_this_frame = false;
+                true
+            } else {
+                false
+            }
+        });
+
+        if let Some((contender_name, ..)) = ctr.contender_action {
+            if !ctr.actions_being_fed.contains_key(contender_name) {
+                ctr.contender_action = None;
             }
         }
     }
@@ -167,6 +280,7 @@ pub fn controller_system(
 pub struct CharacterControllerPhysicsBundle {
     velocity: Velocity,
     external_force: ExternalForce,
+    impulse: ExternalImpulse,
     read_mass_properties: ReadMassProperties,
 }
 

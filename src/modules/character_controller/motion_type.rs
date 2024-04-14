@@ -6,8 +6,9 @@ pub trait MotionType: 'static + Send + Sync {
     const NAME: &'static str;
 
     type State: Default + Send + Sync;
-
     fn apply(&self, state: &mut Self::State, ctx: MotionTypeContext, motion: &mut Motion);
+
+    fn is_airborne(&self, state: &Self::State) -> bool;
 }
 
 pub trait DynamicMotionType: Send + Sync + Any + 'static {
@@ -19,6 +20,8 @@ pub trait DynamicMotionType: Send + Sync + Any + 'static {
 
     #[doc(hidden)]
     fn apply(&mut self, ctx: MotionTypeContext, motion: &mut Motion);
+
+    fn is_airborne(&self) -> bool;
 }
 
 pub(crate) struct BoxableMotionType<M: MotionType> {
@@ -46,5 +49,9 @@ impl<M: MotionType> DynamicMotionType for BoxableMotionType<M> {
 
     fn apply(&mut self, ctx: MotionTypeContext, motion: &mut Motion) {
         self.input.apply(&mut self.state, ctx, motion)
+    }
+
+    fn is_airborne(&self) -> bool {
+        self.input.is_airborne(&self.state)
     }
 }

@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign};
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
-use bevy_rapier3d::dynamics::{ExternalForce, ReadMassProperties, Velocity};
+use bevy_rapier3d::dynamics::{ExternalForce, ExternalImpulse, ReadMassProperties, Velocity};
 
 use crate::world3d::Player;
 
@@ -10,25 +10,28 @@ use crate::world3d::Player;
 pub struct VelChange {
     pub accel: Vec3,
     pub boost: Vec3,
+    pub impulse: Vec3,
 }
 
 impl VelChange {
     pub const ZERO: Self = Self {
         accel: Vec3::ZERO,
         boost: Vec3::ZERO,
+        impulse: Vec3::ZERO,
     };
 
     pub fn boost(boost: Vec3) -> Self {
-        Self {
-            accel: default(),
-            boost,
-        }
+        Self { boost, ..default() }
     }
 
     pub fn accel(accel: Vec3) -> Self {
+        Self { accel, ..default() }
+    }
+
+    pub fn impulse(impulse: Vec3) -> Self {
         Self {
-            accel,
-            boost: default(),
+            impulse,
+            ..default()
         }
     }
 }
@@ -40,6 +43,7 @@ impl Add<VelChange> for VelChange {
         Self::Output {
             accel: self.accel + rhs.accel,
             boost: self.boost + rhs.boost,
+            impulse: self.impulse + rhs.impulse,
         }
     }
 }
@@ -48,6 +52,7 @@ impl AddAssign for VelChange {
     fn add_assign(&mut self, rhs: Self) {
         self.accel += rhs.accel;
         self.boost += rhs.boost;
+        self.impulse += rhs.impulse;
     }
 }
 
@@ -62,23 +67,37 @@ pub fn apply_motion_system(
         &Motion,
         &mut ExternalForce,
         &mut Velocity,
+        &mut ExternalImpulse,
         &ReadMassProperties,
     )>,
 ) {
-    for (motion, mut force, mut velocity, _mass_properties) in query.iter_mut() {
+    for (motion, mut force, mut velocity, mut impulse, _mass_properties) in query.iter_mut() {
+        let mass = _mass_properties.get().mass;
         velocity.linvel += motion.linvel.boost;
         velocity.angvel += motion.angvel.boost;
 
-        force.force = motion.linvel.accel * _mass_properties.get().mass;
-        force.torque = motion.angvel.accel * _mass_properties.get().mass;
+        force.force = motion.linvel.accel * mass;
+        force.torque = motion.angvel.accel * mass;
+
+        impulse.impulse = motion.linvel.impulse * mass;
+        impulse.torque_impulse = motion.angvel.impulse * mass;
     }
 }
 
 pub fn debug_motion_system(
     mut contexts: EguiContexts,
-    query: Query<(&Motion, &ExternalForce, &Velocity, &ReadMassProperties), With<Player>>,
+    query: Query<
+        (
+            &Motion,
+            &ExternalForce,
+            &Velocity,
+            &ExternalImpulse,
+            &ReadMassProperties,
+        ),
+        With<Player>,
+    >,
 ) {
-    for (motion, force, velocity, _mass_properties) in query.iter() {
+    for (motion, force, velocity, impulse, _mass_properties) in query.iter() {
         egui::Window::new("Player motion").show(contexts.ctx_mut(), |ui| {
             ui.label(format!("motion::linvel {:?}", motion.linvel));
             ui.label(format!("motion::angvel {:?}", motion.angvel));
@@ -93,6 +112,8 @@ pub fn debug_motion_system(
                 velocity.angvel.ceil(),
                 force.torque.ceil()
             ));
+
+            ui.label(format!("{:?}", impulse));
         });
     }
 }

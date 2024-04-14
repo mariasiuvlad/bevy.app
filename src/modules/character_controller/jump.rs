@@ -1,46 +1,20 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
+
+use crate::modules::character_controller::traits::action_type::ActionLifecycle;
 
 use super::{
     motion::{Motion, VelChange},
-    motion_type::{BoxableMotionType, DynamicMotionType, MotionType},
-    proximity_sensor::ProximitySensorOutput,
-    walk::MotionTypeContext,
+    traits::action_type::{
+        ActionInitiationDirective, ActionLifecycleDirective, ActionType, ActionTypeContext,
+    },
     WalkMotionType,
 };
 
-pub struct ActionTypeContext<'a> {
-    pub frame_duration: f32,
-    pub proximity_sensor_output: Option<ProximitySensorOutput>,
-    pub transform: Transform,
-    pub velocity: Velocity,
-    pub motion_type: &'a dyn DynamicMotionType,
-    pub gravity: Vec3,
-}
-
-impl<'a> ActionTypeContext<'a> {
-    pub fn concrete_motion_type<M: MotionType>(&self) -> Option<(&M, &M::State)> {
-        let boxable_motion_type: &BoxableMotionType<M> =
-            self.motion_type.as_any().downcast_ref()?;
-        Some((&boxable_motion_type.input, &boxable_motion_type.state))
-    }
-
-    pub fn as_motion_type_context(&self) -> MotionTypeContext {
-        MotionTypeContext {
-            frame_duration: self.frame_duration,
-            velocity: self.velocity,
-            proximity_sensor_output: self.proximity_sensor_output,
-            transform: self.transform,
-            gravity: self.gravity,
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct JumpActionState {}
-
-pub trait ActionType {
-    fn apply(&self, ctx: ActionTypeContext, motion: &mut Motion);
+#[derive(Default, Debug)]
+pub enum JumpActionTypeState {
+    #[default]
+    NoJump,
+    StartingJump,
 }
 
 #[derive(Copy, Clone)]
@@ -56,24 +30,47 @@ impl Default for JumpActionType {
     }
 }
 
-impl JumpActionType {}
-
 impl ActionType for JumpActionType {
-    fn apply(&self, ctx: ActionTypeContext, motion: &mut Motion) {
-        let current_motion_type = ctx.concrete_motion_type::<WalkMotionType>();
-        let spring_force: f32 = if let Some((_, state)) = current_motion_type {
-            state.spring_force
+    fn apply(
+        &self,
+        state: &mut Self::State,
+        ctx: ActionTypeContext,
+        lifecycle: ActionLifecycle,
+        motion: &mut Motion,
+    ) -> ActionLifecycleDirective {
+        let impulse = if lifecycle == ActionLifecycle::Started {
+            *state = JumpActionTypeState::StartingJump;
+            VelChange::impulse(Vec3::Y * 6.)
         } else {
-            0.
+            VelChange::ZERO
         };
 
-        let accel = 20. - ctx.gravity.y - ctx.velocity.linvel.y;
+        let current_motion_type = ctx.concrete_motion_type::<WalkMotionType>();
 
-        let vel_change = VelChange {
-            boost: Vec3::Y * -spring_force,
-            accel: Vec3::Y * accel,
+        let boost = if let Some((_, motion_state)) = current_motion_type {
+            VelChange::boost(Vec3::Y * -motion_state.spring_force)
+        } else {
+            VelChange::ZERO
         };
 
-        motion.linvel += vel_change;
+        motion.linvel += impulse + boost;
+
+        if ctx.velocity.linvel.y > 0. {
+            ActionLifecycleDirective::Active
+        } else {
+            ActionLifecycleDirective::Finished
+        }
+    }
+
+    const NAME: &'static str = "Jump";
+
+    type State = JumpActionTypeState;
+
+    fn initiation_decision(&self, ctx: ActionTypeContext) -> ActionInitiationDirective {
+        if ctx.motion_type.is_airborne() {
+            ActionInitiationDirective::Reject
+        } else {
+            ActionInitiationDirective::Allow
+        }
     }
 }

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
@@ -34,6 +36,7 @@ pub struct MotionTypeContext {
 #[derive(Debug, Default)]
 pub struct WalkMotionState {
     pub spring_force: f32,
+    airborne_timer: Option<Timer>,
 }
 
 #[derive(Copy, Clone)]
@@ -74,7 +77,7 @@ impl WalkMotionType {
         }
     }
 
-    fn can_walk(&self, ctx: MotionTypeContext) -> bool {
+    pub fn can_walk(&self, ctx: MotionTypeContext) -> bool {
         match ctx.proximity_sensor_output {
             None => false,
             Some(_) => true,
@@ -106,30 +109,58 @@ impl MotionType for WalkMotionType {
     type State = WalkMotionState;
 
     fn apply(&self, state: &mut Self::State, ctx: MotionTypeContext, motion: &mut Motion) {
+        if let Some(timer) = &mut state.airborne_timer {
+            timer.tick(Duration::from_secs_f32(ctx.frame_duration));
+        }
+
+        match &mut state.airborne_timer {
+            None => {
+                if let Some(sensor_output) = &ctx.proximity_sensor_output {
+                    // let spring_force = self.calculate_spring_force(ctx);
+                } else {
+                    state.airborne_timer =
+                        Some(Timer::new(Duration::from_millis(150), TimerMode::Once))
+                }
+            }
+            Some(_) => {
+                if let Some(sensor_output) = &ctx.proximity_sensor_output {
+                    if sensor_output.distance <= self.floating_height {
+                        state.airborne_timer = None;
+                    }
+                }
+            }
+        }
+
+        // horizontal movement
         let delta_velocity = (self.velocity - ctx.velocity.linvel).reject_from(Vec3::from(self.up));
         let target_velocity = match self.velocity == Vec3::ZERO {
             true => VelChange::boost(delta_velocity),
             false => VelChange::accel(delta_velocity),
         };
-
-        let spring_force = self.calculate_spring_force(ctx);
-        let vertical_change = VelChange::boost(self.up * spring_force);
         let horizontal_change = if self.can_walk(ctx) {
             target_velocity
         } else {
             VelChange::ZERO
         };
+
+        // vertical movement
+        let spring_force = self.calculate_spring_force(ctx);
+        let vertical_change = VelChange::boost(self.up * spring_force);
+
         motion.linvel = horizontal_change + vertical_change;
 
         let angular_change = if self.can_walk(ctx) {
             VelChange::boost(self.get_torque(ctx) * Vec3::from(self.up))
         } else {
             VelChange::boost(-ctx.velocity.angvel)
-            // VelChange::ZERO
         };
         motion.angvel = angular_change;
 
         // update state
         state.spring_force = spring_force;
+    }
+
+    fn is_airborne(&self, state: &Self::State) -> bool {
+        state.airborne_timer.as_ref().is_some()
     }
 }
