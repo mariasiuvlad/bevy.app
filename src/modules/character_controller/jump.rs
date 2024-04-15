@@ -38,7 +38,7 @@ impl ActionType for JumpActionType {
         lifecycle: ActionLifecycle,
         motion: &mut Motion,
     ) -> ActionLifecycleDirective {
-        let impulse = if lifecycle == ActionLifecycle::Started {
+        let impulse = if lifecycle.just_started() {
             *state = JumpActionTypeState::StartingJump;
             VelChange::impulse(Vec3::Y * 5.)
         } else {
@@ -55,7 +55,7 @@ impl ActionType for JumpActionType {
 
         motion.linvel += impulse + boost;
 
-        if ctx.velocity.linvel.y > 0. {
+        if ctx.velocity.linvel.y > 0. || lifecycle.is_active() {
             ActionLifecycleDirective::Active
         } else {
             ActionLifecycleDirective::Finished

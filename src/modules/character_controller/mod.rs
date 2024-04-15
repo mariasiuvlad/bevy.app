@@ -84,30 +84,39 @@ impl CharacterController {
         match self.actions_being_fed.entry(name) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().fed_this_frame = true;
-                if let Some((current_name, current_action)) = self.current_action.as_mut() {
-                    if *current_name == name {
-                        let Some(current_action) = current_action
-                            .as_mut_any()
-                            .downcast_mut::<BoxableActionType<A>>()
-                        else {
-                            panic!("Multiple action types registered with same name {name:?}");
-                        };
-                        current_action.input = a;
-                    } else {
+                match self.current_action.as_mut() {
+                    None => {
+                        self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
                     }
-                } else {
-                    self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
+                    Some((current_action_name, current_action)) => {
+                        if *current_action_name == name {
+                            let current_action = current_action
+                                .as_mut_any()
+                                .downcast_mut::<BoxableActionType<A>>()
+                                .expect("Multiple action types registered with same name {name:?}");
+
+                            current_action.input = a;
+                        }
+                    }
                 }
             }
             Entry::Vacant(entry) => {
-                info!("Vacant");
                 entry.insert(FedEntry {
                     fed_this_frame: true,
                 });
-                if let Some((name, action)) = self.contender_action.as_mut() {
-                    // self.contender_action.input = action
-                } else {
-                    self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
+
+                match self.contender_action.as_mut() {
+                    Some((_, contender_action)) => {
+                        let contender_action = contender_action
+                            .as_mut_any()
+                            .downcast_mut::<BoxableActionType<A>>()
+                            .expect("Multiple action types registered with same name {name:?}");
+
+                        contender_action.input = a;
+                    }
+                    None => {
+                        self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
+                    }
                 }
             }
         };
@@ -163,53 +172,58 @@ pub fn controller_system(
                 false
             };
 
-            if let Some((action_name, action_type)) = &mut ctr.current_action {
-                let lifecycle = if ctr
-                    .actions_being_fed
-                    .get(action_name)
-                    .map(|fed_entry| fed_entry.fed_this_frame)
-                    .unwrap_or(false)
-                {
-                    ActionLifecycle::StillFed
-                } else {
-                    ActionLifecycle::NoLongerFed
-                };
+            match &mut ctr.current_action {
+                Some((action_name, action_type)) => {
+                    let lifecycle = if ctr
+                        .actions_being_fed
+                        .get(action_name)
+                        .map(|fed_entry| fed_entry.fed_this_frame)
+                        .unwrap_or(false)
+                    {
+                        ActionLifecycle::StillFed
+                    } else {
+                        ActionLifecycle::NoLongerFed
+                    };
 
-                let directive = action_type.apply(
-                    ActionTypeContext {
-                        frame_duration: time.delta_seconds(),
-                        gravity: rapier_config.gravity,
-                        proximity_sensor_output: sensor.output,
-                        transform: *transform,
-                        velocity: *velocity,
-                        motion_type,
-                    },
-                    lifecycle,
-                    motion,
-                );
+                    let directive = action_type.apply(
+                        ActionTypeContext {
+                            frame_duration: time.delta_seconds(),
+                            gravity: rapier_config.gravity,
+                            proximity_sensor_output: sensor.output,
+                            transform: *transform,
+                            velocity: *velocity,
+                            motion_type,
+                        },
+                        lifecycle,
+                        motion,
+                    );
 
-                if directive == ActionLifecycleDirective::Finished {
-                    ctr.current_action = None
+                    if directive == ActionLifecycleDirective::Finished {
+                        ctr.current_action = None
+                    }
                 }
-            } else if has_valid_contender {
-                let (contender_name, mut contender_action) = ctr
-                    .contender_action
-                    .take()
-                    .expect("has_valid_contender can only be true if contender_action is Some");
-                contender_action.apply(
-                    ActionTypeContext {
-                        frame_duration: time.delta_seconds(),
-                        gravity: rapier_config.gravity,
-                        proximity_sensor_output: sensor.output,
-                        transform: *transform,
-                        velocity: *velocity,
-                        motion_type,
-                    },
-                    ActionLifecycle::Started,
-                    motion,
-                );
-                ctr.current_action = Some((contender_name, contender_action));
-                ctr.contender_action = None;
+                None => {
+                    if has_valid_contender {
+                        let (contender_name, mut contender_action) =
+                            ctr.contender_action.take().expect(
+                                "has_valid_contender can only be true if contender_action is Some",
+                            );
+                        contender_action.apply(
+                            ActionTypeContext {
+                                frame_duration: time.delta_seconds(),
+                                gravity: rapier_config.gravity,
+                                proximity_sensor_output: sensor.output,
+                                transform: *transform,
+                                velocity: *velocity,
+                                motion_type,
+                            },
+                            ActionLifecycle::Started,
+                            motion,
+                        );
+                        ctr.current_action = Some((contender_name, contender_action));
+                        ctr.contender_action = None;
+                    }
+                }
             }
         }
 
