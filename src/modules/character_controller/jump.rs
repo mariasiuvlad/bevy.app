@@ -55,7 +55,7 @@ impl ActionType for JumpActionType {
 
         motion.linvel += impulse + boost;
 
-        if ctx.velocity.linvel.y > 0. || lifecycle.is_active() {
+        if ctx.velocity.linvel.y > 0. || lifecycle.just_started() {
             ActionLifecycleDirective::Active
         } else {
             ActionLifecycleDirective::Finished

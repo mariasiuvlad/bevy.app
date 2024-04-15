@@ -36,6 +36,7 @@ pub struct MotionTypeContext {
 #[derive(Debug, Default)]
 pub struct WalkMotionState {
     pub spring_force: f32,
+    pub standing_offset: f32,
     airborne_timer: Option<Timer>,
 }
 
@@ -107,21 +108,23 @@ impl MotionType for WalkMotionType {
         }
 
         match &mut state.airborne_timer {
-            None => {
-                if let Some(sensor_output) = &ctx.proximity_sensor_output {
-                    // let spring_force = self.calculate_spring_force(ctx);
-                } else {
-                    state.airborne_timer =
-                        Some(Timer::new(Duration::from_millis(150), TimerMode::Once))
-                }
-            }
-            Some(_) => {
-                if let Some(sensor_output) = &ctx.proximity_sensor_output {
+            Some(_) => match &ctx.proximity_sensor_output {
+                Some(sensor_output) => {
                     if sensor_output.distance <= self.floating_height {
                         state.airborne_timer = None;
                     }
                 }
-            }
+                None => {}
+            },
+            None => match &ctx.proximity_sensor_output {
+                None => {
+                    state.airborne_timer =
+                        Some(Timer::new(Duration::from_millis(150), TimerMode::Once));
+                }
+                Some(sensor_output) => {
+                    state.standing_offset = sensor_output.distance - self.floating_height
+                }
+            },
         }
 
         // horizontal movement
@@ -158,5 +161,12 @@ impl MotionType for WalkMotionType {
             .airborne_timer
             .as_ref()
             .is_some_and(|timer| timer.finished())
+    }
+
+    fn displacement(&self, state: &Self::State) -> Option<Vec3> {
+        match state.airborne_timer {
+            None => Some(Vec3::Y * state.standing_offset),
+            Some(_) => None,
+        }
     }
 }
