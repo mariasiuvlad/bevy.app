@@ -40,7 +40,7 @@ impl ActionType for JumpActionType {
     ) -> ActionLifecycleDirective {
         let impulse = if lifecycle == ActionLifecycle::Started {
             *state = JumpActionTypeState::StartingJump;
-            VelChange::impulse(Vec3::Y * 6.)
+            VelChange::impulse(Vec3::Y * 5.)
         } else {
             VelChange::ZERO
         };

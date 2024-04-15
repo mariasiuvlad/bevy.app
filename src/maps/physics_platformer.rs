@@ -172,7 +172,7 @@ impl Plugin for PhysicsPlatformerPlugin {
                     setup_world,
                     setup_lights,
                     setup_hero,
-                    setup_npc,
+                    // setup_npc,
                     setup_player_camera.after(setup_hero),
                 ),
             )

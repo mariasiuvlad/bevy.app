@@ -77,13 +77,6 @@ impl WalkMotionType {
         }
     }
 
-    pub fn can_walk(&self, ctx: MotionTypeContext) -> bool {
-        match ctx.proximity_sensor_output {
-            None => false,
-            Some(_) => true,
-        }
-    }
-
     fn get_torque(&self, ctx: MotionTypeContext) -> f32 {
         let existing_angvel = ctx.velocity.angvel.dot(Vec3::from(self.up));
         match self.facing {
@@ -137,7 +130,7 @@ impl MotionType for WalkMotionType {
             true => VelChange::boost(delta_velocity),
             false => VelChange::accel(delta_velocity),
         };
-        let horizontal_change = if self.can_walk(ctx) {
+        let horizontal_change = if !self.is_airborne(state) {
             target_velocity
         } else {
             VelChange::ZERO
@@ -149,7 +142,7 @@ impl MotionType for WalkMotionType {
 
         motion.linvel = horizontal_change + vertical_change;
 
-        let angular_change = if self.can_walk(ctx) {
+        let angular_change = if !self.is_airborne(state) {
             VelChange::boost(self.get_torque(ctx) * Vec3::from(self.up))
         } else {
             VelChange::boost(-ctx.velocity.angvel)
@@ -161,6 +154,9 @@ impl MotionType for WalkMotionType {
     }
 
     fn is_airborne(&self, state: &Self::State) -> bool {
-        state.airborne_timer.as_ref().is_some()
+        state
+            .airborne_timer
+            .as_ref()
+            .is_some_and(|timer| timer.finished())
     }
 }

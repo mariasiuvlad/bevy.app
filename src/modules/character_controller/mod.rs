@@ -7,15 +7,12 @@ use bevy_rapier3d::{
     plugin::RapierConfiguration,
 };
 
-use crate::{
-    modules::character_controller::traits::action_type::ActionLifecycleDirective,
-    world3d::{Player, PlayerCamera},
-};
+use crate::modules::character_controller::traits::action_type::ActionLifecycleDirective;
 
 use self::{
-    jump::JumpActionType,
     motion::{apply_motion_system, debug_motion_system, Motion},
     motion_type::{BoxableMotionType, DynamicMotionType, MotionType},
+    player_input::player_keyboard_input_system,
     proximity_sensor::{cast_ray_system, ProximitySensor},
     traits::action_type::{
         ActionInitiationDirective, ActionLifecycle, ActionType, ActionTypeContext,
@@ -27,6 +24,7 @@ use self::{
 mod jump;
 mod motion;
 mod motion_type;
+mod player_input;
 mod proximity_sensor;
 mod traits;
 mod utils;
@@ -98,63 +96,21 @@ impl CharacterController {
                     } else {
                     }
                 } else {
-                    // self.current_action = Some((name, Box::new(BoxableActionType::new(a))));
                     self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
                 }
             }
             Entry::Vacant(entry) => {
+                info!("Vacant");
                 entry.insert(FedEntry {
                     fed_this_frame: true,
                 });
-            }
-        };
-    }
-}
-
-pub fn keyboard_input_system(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut ctr_query: Query<&mut CharacterController, With<Player>>,
-    camera_query: Query<&Transform, With<PlayerCamera>>,
-) {
-    if let Ok(mut ctr) = ctr_query.get_single_mut() {
-        let mut velocity = Vec3::ZERO;
-
-        if keyboard.pressed(KeyCode::KeyW) {
-            velocity += Vec3::NEG_Z;
-        }
-        if keyboard.pressed(KeyCode::KeyS) {
-            velocity += Vec3::Z;
-        }
-        if keyboard.pressed(KeyCode::KeyA) {
-            velocity += Vec3::NEG_X;
-        }
-        if keyboard.pressed(KeyCode::KeyD) {
-            velocity += Vec3::X;
-        }
-
-        let (facing, velocity) = match camera_query.get_single() {
-            Ok(transform) => {
-                velocity = transform.local_z() * velocity.z + transform.local_x() * velocity.x;
-                match velocity != Vec3::ZERO {
-                    true => (
-                        Some(Direction3d::new_unchecked(velocity.normalize_or_zero())),
-                        velocity,
-                    ),
-                    false => (None, velocity),
+                if let Some((name, action)) = self.contender_action.as_mut() {
+                    // self.contender_action.input = action
+                } else {
+                    self.contender_action = Some((name, Box::new(BoxableActionType::new(a))));
                 }
             }
-            Err(_) => (None, velocity),
         };
-
-        ctr.motion_type(WalkMotionType {
-            velocity: velocity.normalize_or_zero() * 15.,
-            facing,
-            ..default()
-        });
-
-        if keyboard.pressed(KeyCode::Space) {
-            ctr.action_type(JumpActionType { velocity: Vec3::Y });
-        }
     }
 }
 
@@ -169,7 +125,6 @@ pub fn controller_system(
         &mut motion::Motion,
     )>,
 ) {
-    rapier_config.gravity;
     for (transform, velocity, mut ctr, sensor, mut motion) in query.iter_mut() {
         let ctr = ctr.as_mut();
         let motion = motion.as_mut();
@@ -197,11 +152,12 @@ pub fn controller_system(
                     motion_type,
                 });
 
-                // info!("initiation_decision {:?}", initiation_decision);
-
                 match initiation_decision {
                     ActionInitiationDirective::Allow => true,
-                    ActionInitiationDirective::Reject | ActionInitiationDirective::Delay => false,
+                    ActionInitiationDirective::Reject | ActionInitiationDirective::Delay => {
+                        ctr.contender_action = None;
+                        false
+                    }
                 }
             } else {
                 false
@@ -232,8 +188,6 @@ pub fn controller_system(
                     motion,
                 );
 
-                info!("directive {:?}", directive);
-
                 if directive == ActionLifecycleDirective::Finished {
                     ctr.current_action = None
                 }
@@ -255,6 +209,7 @@ pub fn controller_system(
                     motion,
                 );
                 ctr.current_action = Some((contender_name, contender_action));
+                ctr.contender_action = None;
             }
         }
 
@@ -293,7 +248,7 @@ impl Plugin for CharacterControllerPlugin {
                 apply_motion_system,
                 debug_motion_system,
                 controller_system,
-                keyboard_input_system,
+                player_keyboard_input_system,
                 cast_ray_system,
             ),
         );
