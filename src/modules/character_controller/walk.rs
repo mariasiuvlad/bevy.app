@@ -1,12 +1,10 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 
 use super::{
     motion::{Motion, VelChange},
-    motion_type::MotionType,
-    proximity_sensor::ProximitySensorOutput,
+    traits::basis::{Basis, BasisContext},
     utils::ProjectionPlaneForRotation,
 };
 
@@ -22,15 +20,6 @@ impl Default for SpringConfig {
             damper: 0.8,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct MotionTypeContext {
-    pub frame_duration: f32,
-    pub proximity_sensor_output: Option<ProximitySensorOutput>,
-    pub transform: Transform,
-    pub velocity: Velocity,
-    pub gravity: Vec3,
 }
 
 #[derive(Debug, Default)]
@@ -64,7 +53,7 @@ impl Default for WalkMotionType {
 }
 
 impl WalkMotionType {
-    fn calculate_spring_force(&self, ctx: MotionTypeContext) -> f32 {
+    fn calculate_spring_force(&self, ctx: BasisContext) -> f32 {
         match ctx.proximity_sensor_output {
             None => 0.,
             Some(output) => match output.distance > self.floating_height + 0.1 {
@@ -78,7 +67,7 @@ impl WalkMotionType {
         }
     }
 
-    fn get_torque(&self, ctx: MotionTypeContext) -> f32 {
+    fn get_torque(&self, ctx: BasisContext) -> f32 {
         let existing_angvel = ctx.velocity.angvel.dot(Vec3::from(self.up));
         match self.facing {
             None => -existing_angvel,
@@ -97,12 +86,12 @@ impl WalkMotionType {
     }
 }
 
-impl MotionType for WalkMotionType {
+impl Basis for WalkMotionType {
     const NAME: &'static str = "Walk";
 
     type State = WalkMotionState;
 
-    fn apply(&self, state: &mut Self::State, ctx: MotionTypeContext, motion: &mut Motion) {
+    fn apply(&self, state: &mut Self::State, ctx: BasisContext, motion: &mut Motion) {
         if let Some(timer) = &mut state.airborne_timer {
             timer.tick(Duration::from_secs_f32(ctx.frame_duration));
         }
@@ -110,7 +99,7 @@ impl MotionType for WalkMotionType {
         match &mut state.airborne_timer {
             Some(_) => match &ctx.proximity_sensor_output {
                 Some(sensor_output) => {
-                    if sensor_output.distance <= self.floating_height {
+                    if sensor_output.distance <= self.floating_height + 0.05 {
                         state.airborne_timer = None;
                     }
                 }
@@ -152,6 +141,7 @@ impl MotionType for WalkMotionType {
         };
         motion.angvel = angular_change;
 
+        info!("is_airborne {:?}", self.is_airborne(state));
         // update state
         state.spring_force = spring_force;
     }

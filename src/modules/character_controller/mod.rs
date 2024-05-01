@@ -1,4 +1,5 @@
 use bevy::{
+    ecs::schedule::{InternedScheduleLabel, ScheduleLabel},
     prelude::*,
     utils::{Entry, HashMap},
 };
@@ -7,23 +8,24 @@ use bevy_rapier3d::{
     plugin::RapierConfiguration,
 };
 
-use crate::modules::character_controller::traits::action_type::ActionLifecycleDirective;
+use crate::modules::character_controller::traits::action::ActionLifecycleDirective;
 
 use self::{
     motion::{apply_motion_system, debug_motion_system, Motion},
-    motion_type::{BoxableMotionType, DynamicMotionType, MotionType},
     player_input::player_keyboard_input_system,
     proximity_sensor::{cast_ray_system, ProximitySensor},
-    traits::action_type::{
-        ActionInitiationDirective, ActionLifecycle, ActionType, ActionTypeContext,
-        BoxableActionType, DynamicActionType,
+    traits::{
+        action::{
+            Action, ActionContext, ActionInitiationDirective, ActionLifecycle, BoxableActionType,
+            DynamicActionType,
+        },
+        basis::{Basis, BasisContext, BoxableBasis, DynamicBasis},
     },
-    walk::MotionTypeContext,
 };
 
+mod dash;
 mod jump;
 mod motion;
-mod motion_type;
 mod player_input;
 mod proximity_sensor;
 mod traits;
@@ -31,6 +33,27 @@ mod utils;
 mod walk;
 
 pub use walk::WalkMotionType;
+
+/// The user controls should be applied in this system set.
+#[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
+pub struct UserControlsSystemSet;
+
+/// Umbrella system set for [`TnuaPipelineStages`].
+///
+/// The physics backends' plugins are responsible for preventing this entire system set from
+/// running when the physics backend itself is paused.
+#[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
+pub struct CharacterControllerSystemSet;
+
+#[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
+pub enum TnuaPipelineStages {
+    /// Data is read from the physics backend.
+    Sensors,
+    /// Tnua decieds how the entity should be manipulated.
+    Logic,
+    /// Forces are applied in the physics backend.
+    Motors,
+}
 
 #[derive(Default, Bundle)]
 pub struct CharacterControllerBundle {
@@ -46,41 +69,37 @@ struct FedEntry {
 
 #[derive(Default, Component)]
 pub struct CharacterController {
-    current_motion_type: Option<(&'static str, Box<dyn DynamicMotionType>)>,
+    current_motion_type: Option<(&'static str, Box<dyn DynamicBasis>)>,
     current_action: Option<(&'static str, Box<dyn DynamicActionType>)>,
     contender_action: Option<(&'static str, Box<dyn DynamicActionType>)>,
     actions_being_fed: HashMap<&'static str, FedEntry>,
 }
 
 impl CharacterController {
-    pub fn motion_type<M: MotionType>(&mut self, m: M) {
+    pub fn motion_type<M: Basis>(&mut self, m: M) {
         self.named_motion_type(M::NAME, m);
     }
 
-    pub fn named_motion_type<M: MotionType>(
-        &mut self,
-        name: &'static str,
-        motion_type: M,
-    ) -> &mut Self {
+    pub fn named_motion_type<M: Basis>(&mut self, name: &'static str, motion_type: M) -> &mut Self {
         if let Some((existing_name, existing_motion_type)) =
             self.current_motion_type.as_mut().and_then(|(n, m)| {
-                let m = m.as_mut_any().downcast_mut::<BoxableMotionType<M>>()?;
+                let m = m.as_mut_any().downcast_mut::<BoxableBasis<M>>()?;
                 Some((n, m))
             })
         {
             *existing_name = name;
             existing_motion_type.input = motion_type;
         } else {
-            self.current_motion_type = Some((name, Box::new(BoxableMotionType::new(motion_type))))
+            self.current_motion_type = Some((name, Box::new(BoxableBasis::new(motion_type))))
         }
         self
     }
 
-    pub fn action_type<A: ActionType>(&mut self, a: A) {
+    pub fn action_type<A: Action>(&mut self, a: A) {
         self.named_action(A::NAME, a);
     }
 
-    pub fn named_action<A: ActionType>(&mut self, name: &'static str, a: A) {
+    pub fn named_action<A: Action>(&mut self, name: &'static str, a: A) {
         match self.actions_being_fed.entry(name) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().fed_this_frame = true;
@@ -141,7 +160,7 @@ pub fn controller_system(
         if let Some((_, motion_type)) = &mut ctr.current_motion_type {
             let motion_type = motion_type.as_mut();
             motion_type.apply(
-                MotionTypeContext {
+                BasisContext {
                     frame_duration: time.delta_seconds(),
                     proximity_sensor_output: sensor.output,
                     transform: *transform,
@@ -152,7 +171,7 @@ pub fn controller_system(
             );
 
             let has_valid_contender = if let Some((_, contender_action)) = &ctr.contender_action {
-                let initiation_decision = contender_action.initiation_decision(ActionTypeContext {
+                let initiation_decision = contender_action.initiation_decision(ActionContext {
                     frame_duration: time.delta_seconds(),
                     gravity: rapier_config.gravity,
                     proximity_sensor_output: sensor.output,
@@ -163,7 +182,7 @@ pub fn controller_system(
 
                 match initiation_decision {
                     ActionInitiationDirective::Allow => true,
-                    ActionInitiationDirective::Reject | ActionInitiationDirective::Delay => {
+                    ActionInitiationDirective::Reject => {
                         ctr.contender_action = None;
                         false
                     }
@@ -186,7 +205,7 @@ pub fn controller_system(
                     };
 
                     let directive = action_type.apply(
-                        ActionTypeContext {
+                        ActionContext {
                             frame_duration: time.delta_seconds(),
                             gravity: rapier_config.gravity,
                             proximity_sensor_output: sensor.output,
@@ -209,7 +228,7 @@ pub fn controller_system(
                                 "has_valid_contender can only be true if contender_action is Some",
                             );
                         contender_action.apply(
-                            ActionTypeContext {
+                            ActionContext {
                                 frame_duration: time.delta_seconds(),
                                 gravity: rapier_config.gravity,
                                 proximity_sensor_output: sensor.output,
@@ -253,18 +272,56 @@ pub struct CharacterControllerPhysicsBundle {
     read_mass_properties: ReadMassProperties,
 }
 
-pub struct CharacterControllerPlugin;
+pub struct CharacterControllerPlugin {
+    schedule: InternedScheduleLabel,
+}
+
+impl CharacterControllerPlugin {
+    pub fn new(schedule: impl ScheduleLabel) -> Self {
+        Self {
+            schedule: schedule.intern(),
+        }
+    }
+}
+
+impl Default for CharacterControllerPlugin {
+    fn default() -> Self {
+        Self::new(Update)
+    }
+}
+
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
+        app.configure_sets(
+            self.schedule,
             (
-                apply_motion_system,
-                debug_motion_system,
-                controller_system,
-                player_keyboard_input_system,
-                cast_ray_system,
-            ),
+                TnuaPipelineStages::Sensors,
+                UserControlsSystemSet,
+                TnuaPipelineStages::Logic,
+                TnuaPipelineStages::Motors,
+            )
+                .chain()
+                .in_set(CharacterControllerSystemSet),
+        );
+
+        app.add_systems(
+            self.schedule,
+            cast_ray_system.in_set(TnuaPipelineStages::Sensors),
+        );
+
+        app.add_systems(
+            self.schedule,
+            player_keyboard_input_system.in_set(UserControlsSystemSet),
+        );
+
+        app.add_systems(
+            self.schedule,
+            controller_system.in_set(TnuaPipelineStages::Logic),
+        );
+
+        app.add_systems(
+            self.schedule,
+            (apply_motion_system, debug_motion_system).in_set(TnuaPipelineStages::Motors),
         );
     }
 }

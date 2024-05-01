@@ -53,7 +53,7 @@ fn main() {
             CombatPlugin,
             UiPlugin,
             OrbitCameraPlugin,
-            CharacterControllerPlugin,
+            CharacterControllerPlugin::default(),
             PhysicsPlatformerPlugin,
             PlayerKeyboardInputPlugin,
         ))

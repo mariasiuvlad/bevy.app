@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::world3d::{Player, PlayerCamera};
 
-use super::{jump::JumpActionType, CharacterController, WalkMotionType};
+use super::{dash::DashAction, jump::JumpAction, CharacterController, WalkMotionType};
 
 pub fn player_keyboard_input_system(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -46,7 +46,13 @@ pub fn player_keyboard_input_system(
         });
 
         if keyboard.pressed(KeyCode::Space) {
-            ctr.action_type(JumpActionType { velocity: Vec3::Y });
+            ctr.action_type(JumpAction { velocity: Vec3::Y });
+        }
+
+        if let Some(facing) = facing {
+            if keyboard.pressed(KeyCode::ShiftLeft) {
+                ctr.action_type(DashAction { facing });
+            }
         }
     }
 }

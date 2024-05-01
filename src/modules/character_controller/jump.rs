@@ -1,28 +1,27 @@
 use bevy::prelude::*;
 
-use crate::modules::character_controller::traits::action_type::ActionLifecycle;
+use crate::modules::character_controller::traits::action::ActionLifecycle;
 
 use super::{
     motion::{Motion, VelChange},
-    traits::action_type::{
-        ActionInitiationDirective, ActionLifecycleDirective, ActionType, ActionTypeContext,
-    },
+    traits::action::{Action, ActionContext, ActionInitiationDirective, ActionLifecycleDirective},
     WalkMotionType,
 };
 
 #[derive(Default, Debug)]
-pub enum JumpActionTypeState {
+pub enum JumpActionState {
     #[default]
-    NoJump,
-    StartingJump,
+    Started,
+    Active,
+    Finished,
 }
 
-#[derive(Copy, Clone)]
-pub struct JumpActionType {
+#[derive(Clone, Copy)]
+pub struct JumpAction {
     pub velocity: Vec3,
 }
 
-impl Default for JumpActionType {
+impl Default for JumpAction {
     fn default() -> Self {
         Self {
             velocity: Default::default(),
@@ -30,43 +29,45 @@ impl Default for JumpActionType {
     }
 }
 
-impl ActionType for JumpActionType {
+impl Action for JumpAction {
     fn apply(
         &self,
         state: &mut Self::State,
-        ctx: ActionTypeContext,
+        ctx: ActionContext,
         lifecycle: ActionLifecycle,
         motion: &mut Motion,
     ) -> ActionLifecycleDirective {
-        let impulse = if lifecycle.just_started() {
-            *state = JumpActionTypeState::StartingJump;
-            VelChange::impulse(Vec3::Y * 5.)
-        } else {
-            VelChange::ZERO
-        };
-
         let current_motion_type = ctx.concrete_motion_type::<WalkMotionType>();
+        if let Some((_, motion_state)) = current_motion_type {
+            let boost = (Vec3::Y * -motion_state.spring_force).max(Vec3::ZERO);
+            motion.linvel += VelChange::boost(boost);
+        }
 
-        let boost = if let Some((_, motion_state)) = current_motion_type {
-            VelChange::boost(Vec3::Y * -motion_state.spring_force)
-        } else {
-            VelChange::ZERO
-        };
-
-        motion.linvel += impulse + boost;
-
-        if ctx.velocity.linvel.y > 0. || lifecycle.just_started() {
-            ActionLifecycleDirective::Active
-        } else {
-            ActionLifecycleDirective::Finished
+        match state {
+            JumpActionState::Started => {
+                if lifecycle.just_started() {
+                    motion.linvel += VelChange::impulse(Vec3::Y * 5.);
+                }
+                if ctx.motion_type.is_airborne() {
+                    *state = JumpActionState::Active;
+                }
+                ActionLifecycleDirective::Active
+            }
+            JumpActionState::Active => {
+                if !ctx.motion_type.is_airborne() {
+                    *state = JumpActionState::Finished;
+                }
+                ActionLifecycleDirective::Active
+            }
+            JumpActionState::Finished => ActionLifecycleDirective::Finished,
         }
     }
 
     const NAME: &'static str = "Jump";
 
-    type State = JumpActionTypeState;
+    type State = JumpActionState;
 
-    fn initiation_decision(&self, ctx: ActionTypeContext) -> ActionInitiationDirective {
+    fn initiation_decision(&self, ctx: ActionContext) -> ActionInitiationDirective {
         if ctx.motion_type.is_airborne() {
             ActionInitiationDirective::Reject
         } else {
