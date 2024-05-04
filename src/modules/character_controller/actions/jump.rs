@@ -2,13 +2,7 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use crate::modules::character_controller::traits::action::ActionLifecycle;
-
-use super::{
-    motion::{Motion, VelChange},
-    traits::action::{Action, ActionContext, ActionInitiationDirective, ActionLifecycleDirective},
-    WalkMotionType,
-};
+use crate::modules::character_controller::{motion::*, traits::action::*, WalkMotionType};
 
 #[derive(Default, Debug)]
 pub enum JumpActionState {
@@ -49,7 +43,6 @@ impl Action for JumpAction {
 
         match state {
             JumpActionState::Started => {
-                info!("Started!");
                 motion.linvel += VelChange::impulse(Vec3::Y * 5.);
                 *state = JumpActionState::Active(Timer::from_seconds(0.75, TimerMode::Once));
                 ActionLifecycleDirective::Active
@@ -62,10 +55,7 @@ impl Action for JumpAction {
                 }
                 ActionLifecycleDirective::Active
             }
-            JumpActionState::Finished => {
-                info!("Finished!");
-                ActionLifecycleDirective::Finished
-            }
+            JumpActionState::Finished => ActionLifecycleDirective::Finished,
         }
     }
 

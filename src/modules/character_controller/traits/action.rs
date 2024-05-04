@@ -132,6 +132,7 @@ pub struct ActionContext<'a> {
     pub velocity: Velocity,
     pub gravity: Vec3,
     pub motion_type: &'a dyn DynamicBasis,
+    pub rapier_context: &'a RapierContext,
 }
 
 impl<'a> ActionContext<'a> {

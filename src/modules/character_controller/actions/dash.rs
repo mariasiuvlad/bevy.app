@@ -2,10 +2,7 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use super::{
-    motion,
-    traits::action::{self, Action},
-};
+use crate::modules::character_controller::{motion::*, traits::action::*};
 
 #[derive(Default, Debug)]
 pub enum DashActionState {
@@ -28,15 +25,15 @@ impl Action for DashAction {
     fn apply(
         &self,
         state: &mut Self::State,
-        ctx: action::ActionContext,
-        _lifecycle: action::ActionLifecycle,
-        motion: &mut motion::Motion,
-    ) -> action::ActionLifecycleDirective {
+        ctx: ActionContext,
+        _lifecycle: ActionLifecycle,
+        motion: &mut Motion,
+    ) -> ActionLifecycleDirective {
         match state {
             DashActionState::Started => {
                 *state = DashActionState::Active(Timer::from_seconds(0.3, TimerMode::Once));
-                motion.linvel += motion::VelChange::impulse(Vec3::from(self.facing) * 10.);
-                action::ActionLifecycleDirective::Active
+                motion.linvel += VelChange::impulse(Vec3::from(self.facing) * 10.);
+                ActionLifecycleDirective::Active
             }
             DashActionState::Active(timer) => {
                 if timer.finished() {
@@ -44,20 +41,20 @@ impl Action for DashAction {
                 } else {
                     timer.tick(Duration::from_secs_f32(ctx.frame_duration));
                 }
-                action::ActionLifecycleDirective::Active
+                ActionLifecycleDirective::Active
             }
             DashActionState::Finished => {
-                motion.linvel += motion::VelChange::boost(Vec3::from(self.facing) * -10.);
-                action::ActionLifecycleDirective::Finished
+                motion.linvel += VelChange::boost(Vec3::from(self.facing) * -10.);
+                ActionLifecycleDirective::Finished
             }
         }
     }
 
-    fn initiation_decision(&self, ctx: action::ActionContext) -> action::ActionInitiationDirective {
+    fn initiation_decision(&self, ctx: ActionContext) -> ActionInitiationDirective {
         if ctx.motion_type.is_airborne() {
-            action::ActionInitiationDirective::Allow
+            ActionInitiationDirective::Allow
         } else {
-            action::ActionInitiationDirective::Allow
+            ActionInitiationDirective::Reject
         }
     }
 }

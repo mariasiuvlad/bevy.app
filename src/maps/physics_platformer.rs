@@ -8,8 +8,10 @@ use crate::{
     components::cleanup,
     get_single,
     modules::{
-        brain::WanderingBrain, character_controller::CharacterControllerBundle,
-        combat::combat_stats::StatsBundle, orbit_camera::OrbitCamera,
+        brain::{JumpBrain, WanderingBrain},
+        character_controller::CharacterControllerBundle,
+        combat::combat_stats::StatsBundle,
+        orbit_camera::OrbitCamera,
     },
     mouse::{cursor_grab, cursor_release},
     world3d::{Player, PlayerCamera, Targetable},
@@ -61,7 +63,7 @@ fn setup_hero(
         });
 }
 
-fn setup_npc(
+fn setup_jump_brain(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -76,7 +78,42 @@ fn setup_npc(
 
     commands
         .spawn((
-            Name::new("Eve"),
+            Name::new("Jump Brain"),
+            Targetable,
+            RigidBody::Dynamic,
+            LockedAxes::ROTATION_LOCKED,
+            Collider::capsule_y(0.5, 1.),
+            CharacterControllerBundle::default(),
+            JumpBrain,
+            TransformBundle::from(Transform::from_xyz(-10.0, 5.0, 0.0)),
+            StatsBundle::default(),
+        ))
+        .with_children(|parent| {
+            parent.spawn(PbrBundle {
+                mesh,
+                material,
+                transform: Transform::default(),
+                ..default()
+            });
+        });
+}
+
+fn setup_wandering_brain(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mesh = meshes.add(Capsule3d::new(1., 0.5));
+    let material: Handle<StandardMaterial> = materials.add(StandardMaterial {
+        base_color: Color::hex("#EBBAB9").unwrap().into(),
+        metallic: 1.0,
+        perceptual_roughness: 0.5,
+        ..default()
+    });
+
+    commands
+        .spawn((
+            Name::new("Wandering Brain"),
             Targetable,
             RigidBody::Dynamic,
             LockedAxes::ROTATION_LOCKED,
@@ -172,7 +209,8 @@ impl Plugin for PhysicsPlatformerPlugin {
                     setup_world,
                     setup_lights,
                     setup_hero,
-                    setup_npc,
+                    setup_wandering_brain,
+                    setup_jump_brain,
                     setup_player_camera.after(setup_hero),
                 ),
             )

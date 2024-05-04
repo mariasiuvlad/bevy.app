@@ -2,7 +2,10 @@ use bevy::prelude::*;
 
 use crate::world3d::{Player, PlayerCamera};
 
-use super::{dash::DashAction, jump::JumpAction, CharacterController, WalkMotionType};
+use super::{
+    actions::{AttackAction, DashAction, JumpAction},
+    CharacterController, WalkMotionType,
+};
 
 pub fn player_keyboard_input_system(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -53,6 +56,10 @@ pub fn player_keyboard_input_system(
             if keyboard.pressed(KeyCode::ShiftLeft) {
                 ctr.action_type(DashAction { facing });
             }
+        }
+
+        if keyboard.pressed(KeyCode::KeyL) {
+            ctr.action_type(AttackAction);
         }
     }
 }

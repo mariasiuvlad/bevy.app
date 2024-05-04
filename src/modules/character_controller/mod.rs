@@ -3,10 +3,8 @@ use bevy::{
     prelude::*,
     utils::{Entry, HashMap},
 };
-use bevy_rapier3d::{
-    dynamics::{ExternalForce, ExternalImpulse, ReadMassProperties, Velocity},
-    plugin::RapierConfiguration,
-};
+
+use bevy_rapier3d::prelude::*;
 
 use crate::modules::character_controller::traits::action::ActionLifecycleDirective;
 
@@ -23,8 +21,7 @@ use self::{
     },
 };
 
-mod dash;
-mod jump;
+pub mod actions;
 mod motion;
 mod player_input;
 mod proximity_sensor;
@@ -38,15 +35,11 @@ pub use walk::WalkMotionType;
 #[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct UserControlsSystemSet;
 
-/// Umbrella system set for [`TnuaPipelineStages`].
-///
-/// The physics backends' plugins are responsible for preventing this entire system set from
-/// running when the physics backend itself is paused.
 #[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
 pub struct CharacterControllerSystemSet;
 
 #[derive(SystemSet, Clone, PartialEq, Eq, Debug, Hash)]
-pub enum TnuaPipelineStages {
+pub enum CharacterControllerPipelineStages {
     /// Data is read from the physics backend.
     Sensors,
     /// Tnua decieds how the entity should be manipulated.
@@ -148,6 +141,7 @@ impl CharacterController {
 pub fn controller_system(
     time: Res<Time>,
     rapier_config: Res<RapierConfiguration>,
+    rapier_context: Res<RapierContext>,
     mut query: Query<(
         &Transform,
         &Velocity,
@@ -181,6 +175,7 @@ pub fn controller_system(
                     transform: *transform,
                     velocity: *velocity,
                     motion_type,
+                    rapier_context: rapier_context.as_ref(),
                 });
 
                 match initiation_decision {
@@ -215,20 +210,15 @@ pub fn controller_system(
                             transform: *transform,
                             velocity: *velocity,
                             motion_type,
+                            rapier_context: rapier_context.as_ref(),
                         },
                         lifecycle,
                         motion,
                     );
 
-                    // info!("current_action {action_name:?}, lifecycle  {lifecycle:?}, directive {directive:?}");
-
                     match directive {
                         ActionLifecycleDirective::Active => {}
                         ActionLifecycleDirective::Finished => {
-                            // info!(
-                            //     "current_action {} finished, has_valid_contender {}",
-                            //     action_name, has_valid_contender,
-                            // );
                             ctr.current_action = if has_valid_contender {
                                 let (contender_name, mut contender_action) =
                                     ctr.contender_action.take().expect(
@@ -242,6 +232,7 @@ pub fn controller_system(
                                         transform: *transform,
                                         velocity: *velocity,
                                         motion_type,
+                                        rapier_context: rapier_context.as_ref(),
                                     },
                                     ActionLifecycle::Started,
                                     motion,
@@ -268,6 +259,7 @@ pub fn controller_system(
                                 transform: *transform,
                                 velocity: *velocity,
                                 motion_type,
+                                rapier_context: rapier_context.as_ref(),
                             },
                             ActionLifecycle::Started,
                             motion,
@@ -328,10 +320,10 @@ impl Plugin for CharacterControllerPlugin {
         app.configure_sets(
             self.schedule,
             (
-                TnuaPipelineStages::Sensors,
+                CharacterControllerPipelineStages::Sensors,
                 UserControlsSystemSet,
-                TnuaPipelineStages::Logic,
-                TnuaPipelineStages::Motors,
+                CharacterControllerPipelineStages::Logic,
+                CharacterControllerPipelineStages::Motors,
             )
                 .chain()
                 .in_set(CharacterControllerSystemSet),
@@ -339,7 +331,7 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(
             self.schedule,
-            cast_ray_system.in_set(TnuaPipelineStages::Sensors),
+            cast_ray_system.in_set(CharacterControllerPipelineStages::Sensors),
         );
 
         app.add_systems(
@@ -349,12 +341,13 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(
             self.schedule,
-            controller_system.in_set(TnuaPipelineStages::Logic),
+            controller_system.in_set(CharacterControllerPipelineStages::Logic),
         );
 
         app.add_systems(
             self.schedule,
-            (apply_motion_system, debug_motion_system).in_set(TnuaPipelineStages::Motors),
+            (apply_motion_system, debug_motion_system)
+                .in_set(CharacterControllerPipelineStages::Motors),
         );
     }
 }
