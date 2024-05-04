@@ -96,24 +96,20 @@ impl Basis for WalkMotionType {
             timer.tick(Duration::from_secs_f32(ctx.frame_duration));
         }
 
-        match &mut state.airborne_timer {
-            Some(_) => match &ctx.proximity_sensor_output {
-                Some(sensor_output) => {
-                    if sensor_output.distance <= self.floating_height + 0.05 {
-                        state.airborne_timer = None;
-                    }
+        match (&mut state.airborne_timer, &ctx.proximity_sensor_output) {
+            (Some(_), Some(sensor_output)) => {
+                if sensor_output.distance <= self.floating_height + 0.01 {
+                    state.airborne_timer = None;
                 }
-                None => {}
-            },
-            None => match &ctx.proximity_sensor_output {
-                None => {
-                    state.airborne_timer =
-                        Some(Timer::new(Duration::from_millis(150), TimerMode::Once));
-                }
-                Some(sensor_output) => {
-                    state.standing_offset = sensor_output.distance - self.floating_height
-                }
-            },
+            }
+            (Some(_), None) => {}
+            (None, None) => {
+                state.airborne_timer =
+                    Some(Timer::new(Duration::from_millis(150), TimerMode::Once));
+            }
+            (None, Some(sensor_output)) => {
+                state.standing_offset = sensor_output.distance - self.floating_height
+            }
         }
 
         // horizontal movement
@@ -141,7 +137,6 @@ impl Basis for WalkMotionType {
         };
         motion.angvel = angular_change;
 
-        info!("is_airborne {:?}", self.is_airborne(state));
         // update state
         state.spring_force = spring_force;
     }

@@ -33,7 +33,7 @@ impl ActionLifecycle {
         }
     }
 
-    pub fn just_started(&self) -> bool {
+    pub fn _just_started(&self) -> bool {
         match self {
             ActionLifecycle::Started => true,
             _ => false,

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use crate::modules::character_controller::traits::action::ActionLifecycle;
@@ -12,7 +14,7 @@ use super::{
 pub enum JumpActionState {
     #[default]
     Started,
-    Active,
+    Active(Timer),
     Finished,
 }
 
@@ -30,11 +32,13 @@ impl Default for JumpAction {
 }
 
 impl Action for JumpAction {
+    const NAME: &'static str = "Jump";
+
     fn apply(
         &self,
         state: &mut Self::State,
         ctx: ActionContext,
-        lifecycle: ActionLifecycle,
+        _lifecycle: ActionLifecycle,
         motion: &mut Motion,
     ) -> ActionLifecycleDirective {
         let current_motion_type = ctx.concrete_motion_type::<WalkMotionType>();
@@ -45,25 +49,25 @@ impl Action for JumpAction {
 
         match state {
             JumpActionState::Started => {
-                if lifecycle.just_started() {
-                    motion.linvel += VelChange::impulse(Vec3::Y * 5.);
-                }
-                if ctx.motion_type.is_airborne() {
-                    *state = JumpActionState::Active;
-                }
+                info!("Started!");
+                motion.linvel += VelChange::impulse(Vec3::Y * 5.);
+                *state = JumpActionState::Active(Timer::from_seconds(0.75, TimerMode::Once));
                 ActionLifecycleDirective::Active
             }
-            JumpActionState::Active => {
-                if !ctx.motion_type.is_airborne() {
+            JumpActionState::Active(timer) => {
+                if timer.finished() {
                     *state = JumpActionState::Finished;
+                } else {
+                    timer.tick(Duration::from_secs_f32(ctx.frame_duration));
                 }
                 ActionLifecycleDirective::Active
             }
-            JumpActionState::Finished => ActionLifecycleDirective::Finished,
+            JumpActionState::Finished => {
+                info!("Finished!");
+                ActionLifecycleDirective::Finished
+            }
         }
     }
-
-    const NAME: &'static str = "Jump";
 
     type State = JumpActionState;
 

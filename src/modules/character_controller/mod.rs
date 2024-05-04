@@ -63,13 +63,14 @@ pub struct CharacterControllerBundle {
     proximity_sensor: ProximitySensor,
 }
 
+#[derive(Debug)]
 struct FedEntry {
     fed_this_frame: bool,
 }
 
 #[derive(Default, Component)]
 pub struct CharacterController {
-    current_motion_type: Option<(&'static str, Box<dyn DynamicBasis>)>,
+    current_basis: Option<(&'static str, Box<dyn DynamicBasis>)>,
     current_action: Option<(&'static str, Box<dyn DynamicActionType>)>,
     contender_action: Option<(&'static str, Box<dyn DynamicActionType>)>,
     actions_being_fed: HashMap<&'static str, FedEntry>,
@@ -82,7 +83,7 @@ impl CharacterController {
 
     pub fn named_motion_type<M: Basis>(&mut self, name: &'static str, motion_type: M) -> &mut Self {
         if let Some((existing_name, existing_motion_type)) =
-            self.current_motion_type.as_mut().and_then(|(n, m)| {
+            self.current_basis.as_mut().and_then(|(n, m)| {
                 let m = m.as_mut_any().downcast_mut::<BoxableBasis<M>>()?;
                 Some((n, m))
             })
@@ -90,7 +91,7 @@ impl CharacterController {
             *existing_name = name;
             existing_motion_type.input = motion_type;
         } else {
-            self.current_motion_type = Some((name, Box::new(BoxableBasis::new(motion_type))))
+            self.current_basis = Some((name, Box::new(BoxableBasis::new(motion_type))))
         }
         self
     }
@@ -112,7 +113,7 @@ impl CharacterController {
                             let current_action = current_action
                                 .as_mut_any()
                                 .downcast_mut::<BoxableActionType<A>>()
-                                .expect("Multiple action types registered with same name {name:?}");
+                                .expect("[Occupied] Multiple action types registered with same name {name:?}");
 
                             current_action.input = a;
                         }
@@ -129,7 +130,9 @@ impl CharacterController {
                         let contender_action = contender_action
                             .as_mut_any()
                             .downcast_mut::<BoxableActionType<A>>()
-                            .expect("Multiple action types registered with same name {name:?}");
+                            .expect(
+                                "[Vacant] Multiple action types registered with same name {name:?}",
+                            );
 
                         contender_action.input = a;
                     }
@@ -157,7 +160,7 @@ pub fn controller_system(
         let ctr = ctr.as_mut();
         let motion = motion.as_mut();
 
-        if let Some((_, motion_type)) = &mut ctr.current_motion_type {
+        if let Some((_, motion_type)) = &mut ctr.current_basis {
             let motion_type = motion_type.as_mut();
             motion_type.apply(
                 BasisContext {
@@ -217,8 +220,38 @@ pub fn controller_system(
                         motion,
                     );
 
-                    if directive == ActionLifecycleDirective::Finished {
-                        ctr.current_action = None
+                    // info!("current_action {action_name:?}, lifecycle  {lifecycle:?}, directive {directive:?}");
+
+                    match directive {
+                        ActionLifecycleDirective::Active => {}
+                        ActionLifecycleDirective::Finished => {
+                            // info!(
+                            //     "current_action {} finished, has_valid_contender {}",
+                            //     action_name, has_valid_contender,
+                            // );
+                            ctr.current_action = if has_valid_contender {
+                                let (contender_name, mut contender_action) =
+                                    ctr.contender_action.take().expect(
+                                        "has_valid_contender can only be true if contender_action is Some",
+                                    );
+                                contender_action.apply(
+                                    ActionContext {
+                                        frame_duration: time.delta_seconds(),
+                                        gravity: rapier_config.gravity,
+                                        proximity_sensor_output: sensor.output,
+                                        transform: *transform,
+                                        velocity: *velocity,
+                                        motion_type,
+                                    },
+                                    ActionLifecycle::Started,
+                                    motion,
+                                );
+                                // ctr.contender_action = None;
+                                Some((contender_name, contender_action))
+                            } else {
+                                None
+                            }
+                        }
                     }
                 }
                 None => {
